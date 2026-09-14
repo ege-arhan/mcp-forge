@@ -1,0 +1,5 @@
+services:
+  hello-forge:
+    build: .
+    stdin_open: true
+    tty: false

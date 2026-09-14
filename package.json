@@ -6,7 +6,7 @@
     "forge": "./cli/forge.js"
   },
   "scripts": {
-    "test": "node --check cli/forge.js && python3 -m py_compile templates/python/hello/server.py && echo OK"
+    "test": "node --check cli/forge.js && python3 -m py_compile templates/python/hello/server.py && python3 -m unittest discover -s tests"
   },
   "engines": {
     "node": ">=18"

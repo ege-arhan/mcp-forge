@@ -1,15 +1,8 @@
 // Minimal MCP stdio server — zero deps (node builtins only).
 // Newline-delimited JSON-RPC 2.0 over stdio. Run: npx tsx server.ts
+// New tools: `forge add tool <name>` inserts a handler + registry entry
+// at the forge: anchors below. Never delete the anchor lines.
 import * as readline from "node:readline";
-
-const HELLO_TOOL = {
-  name: "hello_world",
-  description: "Returns a greeting. Optional 'name' argument.",
-  inputSchema: {
-    type: "object",
-    properties: { name: { type: "string", description: "Who to greet" } },
-  },
-};
 
 function reply(id: unknown, result: unknown) {
   process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, result }) + "\n");
@@ -20,6 +13,30 @@ function err(id: unknown, code: number, message: string) {
     JSON.stringify({ jsonrpc: "2.0", id, error: { code, message } }) + "\n"
   );
 }
+
+type ToolSpec = {
+  description: string;
+  inputSchema: unknown;
+  handler: (args: any) => unknown[];
+};
+
+// forge:handlers anchor - new tool handlers go above this line
+function helloWorld(args: any): unknown[] {
+  const name = args?.name ?? "world";
+  return [{ type: "text", text: `Hello, ${name}!` }];
+}
+
+const TOOLS: Record<string, ToolSpec> = {
+  // forge:tools anchor - new tool entries go above this line
+  hello_world: {
+    description: "Returns a greeting. Optional 'name' argument.",
+    inputSchema: {
+      type: "object",
+      properties: { name: { type: "string", description: "Who to greet" } },
+    },
+    handler: helloWorld,
+  },
+};
 
 function handle(msg: any) {
   const method: string = msg.method;
@@ -35,13 +52,23 @@ function handle(msg: any) {
   } else if (method === "ping") {
     reply(id, {});
   } else if (method === "tools/list") {
-    reply(id, { tools: [HELLO_TOOL] });
+    reply(id, {
+      tools: Object.entries(TOOLS).map(([name, spec]) => ({
+        name,
+        description: spec.description,
+        inputSchema: spec.inputSchema,
+      })),
+    });
   } else if (method === "tools/call") {
-    if (params.name === "hello_world") {
-      const name = params.arguments?.name ?? "world";
-      reply(id, { content: [{ type: "text", text: `Hello, ${name}!` }] });
-    } else {
+    const spec = TOOLS[params.name];
+    if (!spec) {
       err(id, -32602, `unknown tool: ${params.name}`);
+    } else {
+      try {
+        reply(id, { content: spec.handler(params.arguments ?? {}) });
+      } catch (e) {
+        err(id, -32603, `tool failed: ${e}`);
+      }
     }
   } else if (method?.startsWith("notifications/")) {
     // no response

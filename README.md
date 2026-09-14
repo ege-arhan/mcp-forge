@@ -50,4 +50,18 @@ node cli/forge.js create demo-ts --template ts
 cd demo-ts && npm install && npm start
 ```
 
+## Tool ekleme
+
+```bash
+cd demo
+node ../cli/forge.js add tool ozet --dir .   # veya: forge add tool ozet
+```
+
+`ozet` tool'u `server.py`/`server.ts` içine handler + registry girişi
+olarak eklenir (anchor satırları sayesinde tekrar eklenebilir).
+Yeni tool `input` string'i alır, `ozet: <input>` döndürür —
+handler gövdesini ve `description`'ı gerçek işe göre düzenle.
+
+Test kilidi: `npm test` (node --check + py_compile + unittest e2e).
+
 mcp-inspector ile doğrulama: `npx @modelcontextprotocol/inspector python3 server.py` (stdio modu).
