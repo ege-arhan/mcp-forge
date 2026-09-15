@@ -64,4 +64,23 @@ handler gövdesini ve `description`'ı gerçek işe göre düzenle.
 
 Test kilidi: `npm test` (node --check + py_compile + unittest e2e).
 
+## Resource ekleme
+
+```bash
+cd demo
+node ../cli/forge.js add resource notlar --dir .
+```
+
+`notlar` kaynagi `forge://notlar` URI'si ile `RESOURCES`'a eklenir —
+reader govdesini gercek icerige gore duzenle. Sunucu `resources/list`
+ve `resources/read` destekler; hazir `forge://readme` kaynagi var.
+Inspektor veya stdio ile dogrula:
+
+```bash
+printf '%s\n' \
+ '{"jsonrpc":"2.0","id":1,"method":"resources/list"}' \
+ '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"forge://readme"}}' \
+ | python3 server.py
+```
+
 mcp-inspector ile doğrulama: `npx @modelcontextprotocol/inspector python3 server.py` (stdio modu).

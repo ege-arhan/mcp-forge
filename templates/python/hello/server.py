@@ -2,10 +2,13 @@
 """Minimal MCP stdio server — stdlib only, no dependencies.
 
 Speaks newline-delimited JSON-RPC 2.0 over stdio (MCP stdio transport).
-Supports: initialize, notifications/*, ping, tools/list, tools/call.
+Supports: initialize, notifications/*, ping, tools/list, tools/call,
+resources/list, resources/read.
 
 New tools: `forge add tool <name>` inserts a handler + registry entry
-at the forge: anchors below. Never delete the anchor lines.
+at the forge: anchors below. New resources: `forge add resource <name>`
+inserts a reader + registry entry at the forge:resource anchors below.
+Never delete the anchor lines.
 """
 import json
 import sys
@@ -29,6 +32,11 @@ def _hello_world(args):
     return [{"type": "text", "text": f"Hello, {name}!"}]
 
 
+# forge:resource-readers anchor - new resource readers go above this line
+def _readme_resource():
+    return "hello-forge v0.1.0 - `forge add resource <name>` ile yeni kaynak ekle."
+
+
 TOOLS = {
     # forge:tools anchor - new tool entries go above this line
     "hello_world": {
@@ -42,6 +50,16 @@ TOOLS = {
 }
 
 
+RESOURCES = {
+    # forge:resources anchor - new resource entries go above this line
+    "forge://readme": {
+        "name": "readme",
+        "mimeType": "text/plain",
+        "reader": _readme_resource,
+    },
+}
+
+
 def handle(msg):
     method = msg.get("method")
     id_ = msg.get("id")
@@ -50,7 +68,7 @@ def handle(msg):
     if method == "initialize":
         reply(id_, {
             "protocolVersion": "2024-11-05",
-            "capabilities": {"tools": {}},
+            "capabilities": {"tools": {}, "resources": {}},
             "serverInfo": {"name": "hello-forge", "version": "0.1.0"},
         })
     elif method == "ping":
@@ -70,6 +88,24 @@ def handle(msg):
                 reply(id_, {"content": spec["handler"](params.get("arguments") or {})})
             except Exception as e:  # never crash the stdio loop on a tool bug
                 error(id_, -32603, f"tool failed: {e}")
+    elif method == "resources/list":
+        reply(id_, {"resources": [
+            {"uri": uri, "name": spec["name"],
+             "mimeType": spec["mimeType"]}
+            for uri, spec in RESOURCES.items()
+        ]})
+    elif method == "resources/read":
+        spec = RESOURCES.get(params.get("uri"))
+        if spec is None:
+            error(id_, -32602, f"unknown resource: {params.get('uri')}")
+        else:
+            try:
+                text = spec["reader"]()
+                reply(id_, {"contents": [{"uri": params.get("uri"),
+                                          "mimeType": spec["mimeType"],
+                                          "text": text}]})
+            except Exception as e:
+                error(id_, -32603, f"resource failed: {e}")
     elif method and method.startswith("notifications/"):
         pass  # no response to notifications
     elif id_ is not None:

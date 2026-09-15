@@ -3,6 +3,7 @@
 // Kullanim:
 //   forge create <proje-adi> [--template python|ts] [--dir <hedef-klasor>]
 //   forge add tool <arac-adi> [--dir <proje-klasoru>]
+//   forge add resource <kaynak-adi> [--dir <proje-klasoru>]
 const fs = require("fs");
 const path = require("path");
 
@@ -13,10 +14,11 @@ function usage() {
   console.log(`kullanim:
   forge create <proje-adi> [--template python|ts] [--dir <hedef-klasor>]
   forge add tool <arac-adi> [--dir <proje-klasoru>]
+  forge add resource <kaynak-adi> [--dir <proje-klasoru>]
 
 ornek:
   forge create benim-server --template python
-  cd benim-server && forge add tool ozet`);
+  cd benim-server && forge add tool ozet && forge add resource notlar`);
 }
 
 const SKIP = new Set(["__pycache__", "node_modules", ".git"]);
@@ -110,6 +112,69 @@ function addTsTool(serverFile, name) {
   fs.writeFileSync(serverFile, src);
 }
 
+function addPythonResource(serverFile, name) {
+  let src = fs.readFileSync(serverFile, "utf8");
+  const uri = `forge://${name}`;
+  if (src.includes(`"${uri}"`)) {
+    console.error(`hata: '${name}' zaten kayitli`);
+    process.exit(1);
+  }
+  const hAnchor = "# forge:resource-readers anchor - new resource readers go above this line";
+  const tAnchor = "# forge:resources anchor - new resource entries go above this line";
+  if (!src.includes(hAnchor) || !src.includes(tAnchor)) {
+    console.error("hata: forge resource anchor satirlari bulunamadi (server.py guncel mi?)");
+    process.exit(1);
+  }
+  const reader = [
+    `def _${name}_resource():`,
+    `    return f"TODO: ${name} icerigi."`,
+    ``,
+    ``,
+  ].join("\n");
+  const entry = [
+    `"${uri}": {`,
+    `        "name": "${name}",`,
+    `        "mimeType": "text/plain",`,
+    `        "reader": _${name}_resource,`,
+    `    },`,
+  ].join("\n");
+  src = spliceBeforeAnchor(src, hAnchor, reader);
+  src = spliceBeforeAnchor(src, tAnchor, entry);
+  fs.writeFileSync(serverFile, src);
+}
+
+function addTsResource(serverFile, name) {
+  let src = fs.readFileSync(serverFile, "utf8");
+  const uri = `forge://${name}`;
+  if (src.includes(`"${uri}"`)) {
+    console.error(`hata: '${name}' zaten kayitli`);
+    process.exit(1);
+  }
+  const hAnchor = "// forge:resource-readers anchor - new resource readers go above this line";
+  const tAnchor = "// forge:resources anchor - new resource entries go above this line";
+  if (!src.includes(hAnchor) || !src.includes(tAnchor)) {
+    console.error("hata: forge resource anchor satirlari bulunamadi (server.ts guncel mi?)");
+    process.exit(1);
+  }
+  const fn = toCamel(name) + "Resource";
+  const reader = [
+    `function ${fn}(): string {`,
+    `  return "TODO: ${name} icerigi.";`,
+    `}`,
+    ``,
+  ].join("\n");
+  const entry = [
+    `"${uri}": {`,
+    `    name: "${name}",`,
+    `    mimeType: "text/plain",`,
+    `    reader: ${fn},`,
+    `  },`,
+  ].join("\n");
+  src = spliceBeforeAnchor(src, hAnchor, reader);
+  src = spliceBeforeAnchor(src, tAnchor, entry);
+  fs.writeFileSync(serverFile, src);
+}
+
 function cmdCreate(name, rest) {
   let template = "python", dir = ".";
   for (let i = 0; i < rest.length; i++) {
@@ -131,9 +196,9 @@ function cmdCreate(name, rest) {
 
 function cmdAdd(rest) {
   const [kind, name, ...tail] = rest;
-  if (kind !== "tool" || !name) { usage(); process.exit(1); }
+  if ((kind !== "tool" && kind !== "resource") || !name) { usage(); process.exit(1); }
   if (!TOOL_RE.test(name)) {
-    console.error("hata: arac adi kucuk harfle baslayip [a-z0-9_] icermeli");
+    console.error("hata: ad kucuk harfle baslayip [a-z0-9_] icermeli");
     process.exit(1);
   }
   let dir = ".";
@@ -145,9 +210,11 @@ function cmdAdd(rest) {
   const py = path.join(projectDir, "server.py");
   const ts = path.join(projectDir, "server.ts");
   if (fs.existsSync(py)) {
-    addPythonTool(py, name);
+    if (kind === "tool") addPythonTool(py, name);
+    else addPythonResource(py, name);
   } else if (fs.existsSync(ts)) {
-    addTsTool(ts, name);
+    if (kind === "tool") addTsTool(ts, name);
+    else addTsResource(ts, name);
   } else {
     console.error(`hata: ${projectDir} icinde server.py/server.ts yok (--dir yanlis?)`);
     process.exit(1);

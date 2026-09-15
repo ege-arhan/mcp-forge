@@ -51,6 +51,8 @@ class ForgeTest(unittest.TestCase):
         proj = self.tmp / "demo"
         r = self.forge("add", "tool", "ozet", "--dir", str(proj))
         self.assertEqual(r.returncode, 0, r.stderr)
+        r = self.forge("add", "resource", "notlar", "--dir", str(proj))
+        self.assertEqual(r.returncode, 0, r.stderr)
         server = proj / "server.py"
 
         cp = subprocess.run([sys.executable, "-m", "py_compile", str(server)],
@@ -67,6 +69,10 @@ class ForgeTest(unittest.TestCase):
             rpc(4, "tools/call", {"name": "ozet",
                                   "arguments": {"input": "merhaba"}}),
             rpc(5, "tools/call", {"name": "yok"}),
+            rpc(6, "resources/list"),
+            rpc(7, "resources/read", {"uri": "forge://readme"}),
+            rpc(8, "resources/read", {"uri": "forge://notlar"}),
+            rpc(9, "resources/read", {"uri": "forge://yok"}),
         ])
         by_id = {m["id"]: m for m in out}
         self.assertEqual(by_id[1]["result"]["serverInfo"]["name"], "hello-forge")
@@ -77,6 +83,13 @@ class ForgeTest(unittest.TestCase):
         self.assertIn("ozet: merhaba",
                       by_id[4]["result"]["content"][0]["text"])
         self.assertEqual(by_id[5]["error"]["code"], -32602)
+        uris = {t["uri"] for t in by_id[6]["result"]["resources"]}
+        self.assertEqual(uris, {"forge://readme", "forge://notlar"})
+        self.assertIn("hello-forge",
+                      by_id[7]["result"]["contents"][0]["text"])
+        self.assertIn("notlar",
+                      by_id[8]["result"]["contents"][0]["text"])
+        self.assertEqual(by_id[9]["error"]["code"], -32602)
 
     def test_create_ts_add_tool_syntax(self):
         r = self.forge("create", "demo-ts", "--template", "ts",
@@ -91,6 +104,11 @@ class ForgeTest(unittest.TestCase):
         # anchor lines survive for the next add
         self.assertIn("forge:handlers anchor", src)
         self.assertIn("forge:tools anchor", src)
+        r = self.forge("add", "resource", "notlar", "--dir", str(proj))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        src = (proj / "server.ts").read_text()
+        self.assertIn("forge://notlar", src)
+        self.assertIn("forge:resources anchor", src)
 
     def test_add_tool_rejects_bad_names_and_duplicates(self):
         self.forge("create", "demo", "--template", "python",

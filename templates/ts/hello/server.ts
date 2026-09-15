@@ -1,7 +1,9 @@
 // Minimal MCP stdio server — zero deps (node builtins only).
 // Newline-delimited JSON-RPC 2.0 over stdio. Run: npx tsx server.ts
 // New tools: `forge add tool <name>` inserts a handler + registry entry
-// at the forge: anchors below. Never delete the anchor lines.
+// at the forge: anchors below. New resources: `forge add resource <name>`
+// inserts a reader + registry entry at the forge:resource anchors below.
+// Never delete the anchor lines.
 import * as readline from "node:readline";
 
 function reply(id: unknown, result: unknown) {
@@ -20,10 +22,21 @@ type ToolSpec = {
   handler: (args: any) => unknown[];
 };
 
+type ResourceSpec = {
+  name: string;
+  mimeType: string;
+  reader: () => string;
+};
+
 // forge:handlers anchor - new tool handlers go above this line
 function helloWorld(args: any): unknown[] {
   const name = args?.name ?? "world";
   return [{ type: "text", text: `Hello, ${name}!` }];
+}
+
+// forge:resource-readers anchor - new resource readers go above this line
+function readmeResource(): string {
+  return "hello-forge v0.1.0 - `forge add resource <name>` ile yeni kaynak ekle.";
 }
 
 const TOOLS: Record<string, ToolSpec> = {
@@ -38,6 +51,15 @@ const TOOLS: Record<string, ToolSpec> = {
   },
 };
 
+const RESOURCES: Record<string, ResourceSpec> = {
+  // forge:resources anchor - new resource entries go above this line
+  "forge://readme": {
+    name: "readme",
+    mimeType: "text/plain",
+    reader: readmeResource,
+  },
+};
+
 function handle(msg: any) {
   const method: string = msg.method;
   const id = msg.id;
@@ -46,7 +68,7 @@ function handle(msg: any) {
   if (method === "initialize") {
     reply(id, {
       protocolVersion: "2024-11-05",
-      capabilities: { tools: {} },
+      capabilities: { tools: {}, resources: {} },
       serverInfo: { name: "hello-forge", version: "0.1.0" },
     });
   } else if (method === "ping") {
@@ -68,6 +90,27 @@ function handle(msg: any) {
         reply(id, { content: spec.handler(params.arguments ?? {}) });
       } catch (e) {
         err(id, -32603, `tool failed: ${e}`);
+      }
+    }
+  } else if (method === "resources/list") {
+    reply(id, {
+      resources: Object.entries(RESOURCES).map(([uri, spec]) => ({
+        uri,
+        name: spec.name,
+        mimeType: spec.mimeType,
+      })),
+    });
+  } else if (method === "resources/read") {
+    const spec = RESOURCES[params.uri];
+    if (!spec) {
+      err(id, -32602, `unknown resource: ${params.uri}`);
+    } else {
+      try {
+        reply(id, {
+          contents: [{ uri: params.uri, mimeType: spec.mimeType, text: spec.reader() }],
+        });
+      } catch (e) {
+        err(id, -32603, `resource failed: ${e}`);
       }
     }
   } else if (method?.startsWith("notifications/")) {
