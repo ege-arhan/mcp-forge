@@ -121,6 +121,17 @@ class ForgeTest(unittest.TestCase):
         dup = self.forge("add", "tool", "ozet", "--dir", proj)
         self.assertNotEqual(dup.returncode, 0)
 
+    def test_verify_passes_on_fresh_template(self):
+        proj = self.tmp / "vdemo"
+        r = self.forge("create", "vdemo", "--template", "python",
+                       "--dir", str(self.tmp))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        v = subprocess.run(["node", str(FORGE), "verify",
+                            "--dir", str(proj)],
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        self.assertIn("tum kontroller gecti", v.stdout)
+
     def test_template_server_hello_still_ok(self):
         out = run_server(PY_SERVER, [
             rpc(1, "tools/list"),

@@ -83,4 +83,13 @@ printf '%s\n' \
  | python3 server.py
 ```
 
-mcp-inspector ile doğrulama: `npx @modelcontextprotocol/inspector python3 server.py` (stdio modu).
+Tek komutla doğrulama (inspector eşdeğeri stdio handshake):
+
+```bash
+cd demo
+node ../cli/forge.js verify
+```
+
+`initialize → tools/list → tools/call → resources/list → resources/read`
+akışını stdio üzerinden çalıştırır, her adımı `ok/FAIL` yazar.
+Gerçek mcp-inspector ile doğrulama: `npx @modelcontextprotocol/inspector python3 server.py` (stdio modu).
