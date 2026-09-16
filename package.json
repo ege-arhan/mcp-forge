@@ -5,8 +5,17 @@
   "bin": {
     "forge": "./cli/forge.js"
   },
+  "files": [
+    "cli/",
+    "templates/python/hello/server.py",
+    "templates/ts/hello/server.ts",
+    "templates/ts/hello/package.json",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "node --check cli/forge.js && python3 -m py_compile templates/python/hello/server.py && python3 -m unittest discover -s tests"
+    "test": "node --check cli/forge.js && python3 -m py_compile templates/python/hello/server.py && python3 -m unittest discover -s tests",
+    "prepublishOnly": "npm test"
   },
   "engines": {
     "node": ">=18"

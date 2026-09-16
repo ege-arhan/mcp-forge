@@ -17,6 +17,7 @@ function usage() {
   forge add tool <arac-adi> [--dir <proje-klasoru>]
   forge add resource <kaynak-adi> [--dir <proje-klasoru>]
   forge verify [--dir <proje-klasoru>]
+  forge --version | --help
 
 ornek:
   forge create benim-server --template python
@@ -291,8 +292,18 @@ function cmdVerify(rest) {
   process.exit(1);
 }
 
+function cmdVersion() {
+  let version = "0.0.0";
+  try {
+    version = require("../package.json").version || version;
+  } catch { /* fallback */ }
+  console.log(`forge v${version}`);
+}
+
 function main() {
   const [cmd, ...rest] = process.argv.slice(2);
+  if (cmd === "--version" || cmd === "-V") return cmdVersion();
+  if (cmd === "--help" || cmd === "-h" || cmd === "help") return usage();
   if (cmd === "create") return cmdCreate(rest[0], rest.slice(1));
   if (cmd === "add") return cmdAdd(rest);
   if (cmd === "verify") return cmdVerify(rest);

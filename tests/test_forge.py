@@ -132,6 +132,14 @@ class ForgeTest(unittest.TestCase):
         self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
         self.assertIn("tum kontroller gecti", v.stdout)
 
+    def test_version_and_help(self):
+        v = self.forge("--version")
+        self.assertEqual(v.returncode, 0, v.stderr)
+        self.assertIn("forge v", v.stdout)
+        h = self.forge("--help")
+        self.assertEqual(h.returncode, 0, h.stderr)
+        self.assertIn("forge create", h.stdout)
+
     def test_template_server_hello_still_ok(self):
         out = run_server(PY_SERVER, [
             rpc(1, "tools/list"),

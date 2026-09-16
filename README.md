@@ -93,3 +93,13 @@ node ../cli/forge.js verify
 `initialize → tools/list → tools/call → resources/list → resources/read`
 akışını stdio üzerinden çalıştırır, her adımı `ok/FAIL` yazar.
 Gerçek mcp-inspector ile doğrulama: `npx @modelcontextprotocol/inspector python3 server.py` (stdio modu).
+
+## Publish
+
+```bash
+npm test          # prepublish kilidi (node --check + py_compile + unittest)
+npm pack --dry-run  # tarball icerigi: cli/ + templates + README + LICENSE (pyc yok)
+npm publish --access public
+```
+
+Kurulu CLI: `npm i -g mcp-forge` → `forge --version` / `forge create demo`.
