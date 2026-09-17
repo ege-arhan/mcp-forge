@@ -64,6 +64,12 @@ handler gövdesini ve `description`'ı gerçek işe göre düzenle.
 
 Test kilidi: `npm test` (node --check + py_compile + unittest e2e).
 
+## Örnekler
+
+`examples/calculator` — `forge create` + `forge add tool` ile üretilmiş,
+gerçek iş yapan iki dilli hesap makinesi (`topla`/`carp`).
+Detay: [examples/calculator/README.md](examples/calculator/README.md).
+
 ## Resource ekleme
 
 ```bash
