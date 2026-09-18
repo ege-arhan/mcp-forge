@@ -1,0 +1,12 @@
+{
+  "name": "@ege-arhan/hello-forge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal MCP stdio server (TS)",
+  "scripts": {
+    "start": "tsx server.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

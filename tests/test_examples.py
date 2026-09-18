@@ -11,11 +11,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CALC = ROOT / "examples" / "calculator" / "python" / "server.py"
+NOTES = ROOT / "examples" / "notes" / "python" / "server.py"
 
 
-def run(messages):
+def run(messages, server=CALC):
     stdin = "\n".join(json.dumps(m) for m in messages) + "\n"
-    p = subprocess.run([sys.executable, str(CALC)], input=stdin,
+    p = subprocess.run([sys.executable, str(server)], input=stdin,
                        capture_output=True, text=True, timeout=30)
     assert p.returncode == 0, p.stderr
     return {m["id"]: m for m in
@@ -47,6 +48,35 @@ class CalculatorExampleTest(unittest.TestCase):
         self.assertIn("carpim: 30", out[3]["result"]["content"][0]["text"])
         # kotu girdi sunucuyu cokertmez, hata mesaji doner
         self.assertIn("hata:", out[4]["result"]["content"][0]["text"])
+
+
+class NotesExampleTest(unittest.TestCase):
+    def test_ekle_listele_kurallar(self):
+        out = run([
+            rpc(1, "tools/list"),
+            rpc(2, "tools/call", {"name": "not_ekle",
+                                  "arguments": {"not": "sut al"}}),
+            rpc(3, "tools/call", {"name": "not_ekle",
+                                  "arguments": {"not": "ekmek al"}}),
+            rpc(4, "resources/list"),
+            rpc(5, "resources/read", {"uri": "forge://notlar"}),
+            rpc(6, "tools/call", {"name": "not_ekle",
+                                  "arguments": {"not": "  "}}),
+        ], server=NOTES)
+        names = {t["name"] for t in out[1]["result"]["tools"]}
+        self.assertIn("not_ekle", names)
+        self.assertIn("eklendi (1): sut al",
+                      out[2]["result"]["content"][0]["text"])
+        self.assertIn("eklendi (2): ekmek al",
+                      out[3]["result"]["content"][0]["text"])
+        uris = {t["uri"] for t in out[4]["result"]["resources"]}
+        self.assertIn("forge://notlar", uris)
+        text = out[5]["result"]["contents"][0]["text"]
+        self.assertIn("1. sut al", text)
+        self.assertIn("2. ekmek al", text)
+        # bos not reddedilir, sunucu cokmez
+        self.assertIn("hata:",
+                      out[6]["result"]["content"][0]["text"])
 
 
 if __name__ == "__main__":

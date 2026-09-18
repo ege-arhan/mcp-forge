@@ -70,6 +70,10 @@ Test kilidi: `npm test` (node --check + py_compile + unittest e2e).
 gerçek iş yapan iki dilli hesap makinesi (`topla`/`carp`).
 Detay: [examples/calculator/README.md](examples/calculator/README.md).
 
+`examples/notes` — tool + resource birlikte kullanımını kilitleyen
+bellek-içi not defteri (`not_ekle` + `forge://notlar`).
+Detay: [examples/notes/README.md](examples/notes/README.md).
+
 ## Resource ekleme
 
 ```bash
