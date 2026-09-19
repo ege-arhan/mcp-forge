@@ -77,9 +77,15 @@ RESOURCES = {
 }
 
 def handle(msg):
+    if not isinstance(msg, dict):
+        return  # id bilinmez, yanit verilemez — sessiz gec
     method = msg.get("method")
     id_ = msg.get("id")
     params = msg.get("params", {}) or {}
+    if not isinstance(params, dict):
+        if id_ is not None:
+            error(id_, -32602, "invalid params")
+        return
 
     if method == "initialize":
         reply(id_, {

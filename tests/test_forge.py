@@ -140,6 +140,34 @@ class ForgeTest(unittest.TestCase):
         self.assertEqual(h.returncode, 0, h.stderr)
         self.assertIn("forge create", h.stdout)
 
+    def test_malformed_input_never_crashes(self):
+        raw = '12\n"just a string"\nnull\n[1,2]\n' + json.dumps(
+            rpc(1, "tools/list")) + "\n"
+        p = subprocess.run(
+            [sys.executable, str(PY_SERVER)], input=raw,
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(p.returncode, 0, p.stderr)
+        out = [json.loads(l) for l in p.stdout.splitlines() if l.strip()]
+        self.assertEqual(len(out), 1)
+        self.assertIn("hello_world",
+                      [t["name"] for t in out[0]["result"]["tools"]])
+
+        bad_params = json.dumps(
+            rpc(7, "tools/call", "bozuk")) + "\n" + json.dumps(
+            rpc(8, "tools/list")) + "\n"
+        p = subprocess.run(
+            [sys.executable, str(PY_SERVER)], input=bad_params,
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(p.returncode, 0, p.stderr)
+        by_id = {m["id"]: m for m in
+                   (json.loads(l) for l in p.stdout.splitlines()
+                    if l.strip())}
+        self.assertEqual(by_id[7]["error"]["code"], -32602)
+        self.assertIn("hello_world",
+                      [t["name"] for t in by_id[8]["result"]["tools"]])
+
     def test_template_server_hello_still_ok(self):
         out = run_server(PY_SERVER, [
             rpc(1, "tools/list"),
