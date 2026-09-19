@@ -16,13 +16,14 @@ function usage() {
   forge create <proje-adi> [--template python|ts] [--dir <hedef-klasor>]
   forge add tool <arac-adi> [--dir <proje-klasoru>]
   forge add resource <kaynak-adi> [--dir <proje-klasoru>]
+  forge add prompt <prompt-adi> [--dir <proje-klasoru>]
   forge verify [--dir <proje-klasoru>]
   forge --version | --help
 
 ornek:
   forge create benim-server --template python
   cd benim-server && forge add tool ozet && forge add resource notlar
-  forge verify   # stdio handshake: initialize/tools/resources (inspector esdegeri)`);
+  forge verify   # stdio handshake: initialize/tools/resources/prompts (inspector esdegeri)`);
 }
 
 const SKIP = new Set(["__pycache__", "node_modules", ".git"]);
@@ -179,6 +180,71 @@ function addTsResource(serverFile, name) {
   fs.writeFileSync(serverFile, src);
 }
 
+function addPythonPrompt(serverFile, name) {
+  let src = fs.readFileSync(serverFile, "utf8");
+  if (src.includes(`"${name}"`)) {
+    console.error(`hata: '${name}' zaten kayitli`);
+    process.exit(1);
+  }
+  const hAnchor = "# forge:prompt-builders anchor - new prompt builders go above this line";
+  const tAnchor = "# forge:prompts anchor - new prompt entries go above this line";
+  if (!src.includes(hAnchor) || !src.includes(tAnchor)) {
+    console.error("hata: forge prompt anchor satirlari bulunamadi (server.py guncel mi?)");
+    process.exit(1);
+  }
+  const builder = [
+    `def _${name}_prompt(args):`,
+    `    text = (args or {}).get("input", "")`,
+    `    return [{"role": "user",`,
+    `             "content": {"type": "text",`,
+    `                         "text": f"${name}: {text}"}}]`,
+    ``,
+    ``,
+  ].join("\n");
+  const entry = [
+    `"${name}": {`,
+    `        "description": "TODO: describe ${name}.",`,
+    `        "args": [{"name": "input", "required": False}],`,
+    `        "builder": _${name}_prompt,`,
+    `    },`,
+  ].join("\n");
+  src = spliceBeforeAnchor(src, hAnchor, builder);
+  src = spliceBeforeAnchor(src, tAnchor, entry);
+  fs.writeFileSync(serverFile, src);
+}
+
+function addTsPrompt(serverFile, name) {
+  let src = fs.readFileSync(serverFile, "utf8");
+  if (src.includes(`${name}: {`) || src.includes(`"${name}"`)) {
+    console.error(`hata: '${name}' zaten kayitli`);
+    process.exit(1);
+  }
+  const hAnchor = "// forge:prompt-builders anchor - new prompt builders go above this line";
+  const tAnchor = "// forge:prompts anchor - new prompt entries go above this line";
+  if (!src.includes(hAnchor) || !src.includes(tAnchor)) {
+    console.error("hata: forge prompt anchor satirlari bulunamadi (server.ts guncel mi?)");
+    process.exit(1);
+  }
+  const fn = toCamel(name) + "Prompt";
+  const builder = [
+    `function ${fn}(args: any): unknown[] {`,
+    `  const input = args?.input ?? "";`,
+    `  return [{ role: "user", content: { type: "text", text: \`${name}: \${input}\` } }];`,
+    `}`,
+    ``,
+  ].join("\n");
+  const entry = [
+    `${name}: {`,
+    `    description: "TODO: describe ${name}.",`,
+    `    args: [{ name: "input", required: false }],`,
+    `    builder: ${fn},`,
+    `  },`,
+  ].join("\n");
+  src = spliceBeforeAnchor(src, hAnchor, builder);
+  src = spliceBeforeAnchor(src, tAnchor, entry);
+  fs.writeFileSync(serverFile, src);
+}
+
 function cmdCreate(name, rest) {
   let template = "python", dir = ".";
   for (let i = 0; i < rest.length; i++) {
@@ -200,7 +266,7 @@ function cmdCreate(name, rest) {
 
 function cmdAdd(rest) {
   const [kind, name, ...tail] = rest;
-  if ((kind !== "tool" && kind !== "resource") || !name) { usage(); process.exit(1); }
+  if ((kind !== "tool" && kind !== "resource" && kind !== "prompt") || !name) { usage(); process.exit(1); }
   if (!TOOL_RE.test(name)) {
     console.error("hata: ad kucuk harfle baslayip [a-z0-9_] icermeli");
     process.exit(1);
@@ -215,10 +281,12 @@ function cmdAdd(rest) {
   const ts = path.join(projectDir, "server.ts");
   if (fs.existsSync(py)) {
     if (kind === "tool") addPythonTool(py, name);
-    else addPythonResource(py, name);
+    else if (kind === "resource") addPythonResource(py, name);
+    else addPythonPrompt(py, name);
   } else if (fs.existsSync(ts)) {
     if (kind === "tool") addTsTool(ts, name);
-    else addTsResource(ts, name);
+    else if (kind === "resource") addTsResource(ts, name);
+    else addTsPrompt(ts, name);
   } else {
     console.error(`hata: ${projectDir} icinde server.py/server.ts yok (--dir yanlis?)`);
     process.exit(1);
@@ -242,6 +310,8 @@ function stdioHandshake(serverCmd, serverArgs) {
     req(3, "tools/call", { name: "hello_world", arguments: { name: "Forge" } }),
     req(4, "resources/list"),
     req(5, "resources/read", { uri: "forge://readme" }),
+    req(6, "prompts/list"),
+    req(7, "prompts/get", { name: "greet", arguments: { name: "Forge" } }),
   ].join("\n") + "\n";
   const r = spawnSync(serverCmd, serverArgs, { input: lines, encoding: "utf8", timeout: 30000 });
   if (r.error || r.status !== 0) {
@@ -259,6 +329,8 @@ function stdioHandshake(serverCmd, serverArgs) {
     ["tools/call hello_world", byId[3] && byId[3].result && String(((byId[3].result.content || [])[0] || {}).text || "").includes("Hello, Forge!")],
     ["resources/list has forge://readme", byId[4] && byId[4].result && (byId[4].result.resources || []).some((t) => t.uri === "forge://readme")],
     ["resources/read forge://readme", byId[5] && byId[5].result && String((((byId[5].result.contents || [])[0] || {}).text) || "").includes("hello-forge")],
+    ["prompts/list has greet", byId[6] && byId[6].result && (byId[6].result.prompts || []).some((t) => t.name === "greet")],
+    ["prompts/get greet", byId[7] && byId[7].result && String((((byId[7].result.messages || [])[0] || {}).content || {}).text || "").includes("Forge")],
   ];
   let fail = 0;
   for (const [name, ok] of checks) {

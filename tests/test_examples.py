@@ -79,5 +79,25 @@ class NotesExampleTest(unittest.TestCase):
                       out[6]["result"]["content"][0]["text"])
 
 
+class TemplatePromptTest(unittest.TestCase):
+    def test_python_template_prompts(self):
+        out = run([
+            rpc(1, "initialize", {"protocolVersion": "2024-11-05",
+                                 "capabilities": {}, "clientInfo": {}}),
+            rpc(2, "prompts/list"),
+            rpc(3, "prompts/get", {"name": "greet",
+                                   "arguments": {"name": "Ege"}}),
+            rpc(4, "prompts/get", {"name": "yok"}),
+        ], server=ROOT / "templates" / "python" / "hello" / "server.py")
+        caps = out[1]["result"]["capabilities"]
+        self.assertIn("prompts", caps)
+        names = {t["name"] for t in out[2]["result"]["prompts"]}
+        self.assertIn("greet", names)
+        msg = out[3]["result"]["messages"][0]
+        self.assertEqual(msg["role"], "user")
+        self.assertIn("Greet Ege", msg["content"]["text"])
+        self.assertEqual(out[4]["error"]["code"], -32602)
+
+
 if __name__ == "__main__":
     unittest.main()

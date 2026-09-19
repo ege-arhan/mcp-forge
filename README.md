@@ -93,6 +93,24 @@ printf '%s\n' \
  | python3 server.py
 ```
 
+## Prompt ekleme
+
+```bash
+cd demo
+node ../cli/forge.js add prompt ozet --dir .
+```
+
+`ozet` prompt'u builder + registry girişi olarak eklenir.
+Sunucu `prompts/list` ve `prompts/get` destekler; hazır `greet`
+prompt'u var:
+
+```bash
+printf '%s\n' \
+ '{"jsonrpc":"2.0","id":1,"method":"prompts/list"}' \
+ '{"jsonrpc":"2.0","id":2,"method":"prompts/get","params":{"name":"greet","arguments":{"name":"Ege"}}}' \
+ | python3 server.py
+```
+
 Tek komutla doğrulama (inspector eşdeğeri stdio handshake):
 
 ```bash

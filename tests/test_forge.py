@@ -91,6 +91,57 @@ class ForgeTest(unittest.TestCase):
                       by_id[8]["result"]["contents"][0]["text"])
         self.assertEqual(by_id[9]["error"]["code"], -32602)
 
+    def test_create_python_add_prompt_e2e(self):
+        r = self.forge("create", "pdem", "--template", "python",
+                       "--dir", str(self.tmp))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        proj = self.tmp / "pdem"
+        r = self.forge("add", "prompt", "ozet", "--dir", str(proj))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        server = proj / "server.py"
+        src = server.read_text()
+        self.assertIn("forge:prompt-builders anchor", src)
+        self.assertIn("forge:prompts anchor", src)
+        self.assertIn("ozet", src)
+
+        cp = subprocess.run([sys.executable, "-m", "py_compile", str(server)],
+                            capture_output=True, text=True, timeout=30)
+        self.assertEqual(cp.returncode, 0, cp.stderr)
+
+        out = run_server(server, [
+            rpc(1, "prompts/list"),
+            rpc(2, "prompts/get", {"name": "greet",
+                                   "arguments": {"name": "Ege"}}),
+            rpc(3, "prompts/get", {"name": "ozet",
+                                   "arguments": {"input": "merhaba"}}),
+            rpc(4, "prompts/get", {"name": "yok"}),
+        ])
+        by_id = {m["id"]: m for m in out}
+        names = {t["name"] for t in by_id[1]["result"]["prompts"]}
+        self.assertEqual(names, {"greet", "ozet"})
+        self.assertIn("Greet Ege",
+                      by_id[2]["result"]["messages"][0]["content"]["text"])
+        self.assertIn("ozet: merhaba",
+                      by_id[3]["result"]["messages"][0]["content"]["text"])
+        self.assertEqual(by_id[4]["error"]["code"], -32602)
+
+        v = subprocess.run(["node", str(FORGE), "verify",
+                            "--dir", str(proj)],
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        self.assertIn("prompts/list has greet", v.stdout)
+
+    def test_add_prompt_rejects_bad_names_and_duplicates(self):
+        self.forge("create", "pdem", "--template", "python",
+                   "--dir", str(self.tmp))
+        proj = str(self.tmp / "pdem")
+        bad = self.forge("add", "prompt", "Ozet!", "--dir", proj)
+        self.assertNotEqual(bad.returncode, 0)
+        ok = self.forge("add", "prompt", "ozet", "--dir", proj)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        dup = self.forge("add", "prompt", "ozet", "--dir", proj)
+        self.assertNotEqual(dup.returncode, 0)
+
     def test_create_ts_add_tool_syntax(self):
         r = self.forge("create", "demo-ts", "--template", "ts",
                        "--dir", str(self.tmp))
