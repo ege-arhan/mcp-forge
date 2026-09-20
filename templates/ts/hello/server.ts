@@ -1,5 +1,5 @@
 // Minimal MCP stdio server — zero deps (node builtins only).
-// Newline-delimited JSON-RPC 2.0 over stdio. Run: npx tsx server.ts
+// Newline-delimited JSON-RPC 2.0 over stdio. Run: node server.ts (Node >=22.18)
 // New tools: `forge add tool <name>` inserts a handler + registry entry
 // at the forge: anchors below. New resources: `forge add resource <name>`
 // inserts a reader + registry entry at the forge:resource anchors below.
@@ -85,9 +85,14 @@ const PROMPTS: Record<string, PromptSpec> = {
 };
 
 function handle(msg: any) {
+  if (!msg || typeof msg !== "object" || Array.isArray(msg)) return;
   const method: string = msg.method;
   const id = msg.id;
   const params = msg.params ?? {};
+  if (!params || typeof params !== "object" || Array.isArray(params)) {
+    if (id !== undefined) err(id, -32602, "invalid params");
+    return;
+  }
 
   if (method === "initialize") {
     reply(id, {

@@ -85,9 +85,14 @@ const RESOURCES: Record<string, ResourceSpec> = {
 };
 
 function handle(msg: any) {
+  if (!msg || typeof msg !== "object" || Array.isArray(msg)) return;
   const method: string = msg.method;
   const id = msg.id;
   const params = msg.params ?? {};
+  if (!params || typeof params !== "object" || Array.isArray(params)) {
+    if (id !== undefined) err(id, -32602, "invalid params");
+    return;
+  }
 
   if (method === "initialize") {
     reply(id, {

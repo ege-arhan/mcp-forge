@@ -43,11 +43,11 @@ docker build -t hello-forge .
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | docker run -i hello-forge
 ```
 
-TS şablon:
+TS şablon (Node >=22.18 — sıfır bağımlılık, type stripping):
 
 ```bash
 node cli/forge.js create demo-ts --template ts
-cd demo-ts && npm install && npm start
+cd demo-ts && node server.ts
 ```
 
 ## Tool ekleme

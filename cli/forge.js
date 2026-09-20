@@ -261,7 +261,7 @@ function cmdCreate(name, rest) {
   if (fs.existsSync(dest)) { console.error(`hata: ${dest} zaten var`); process.exit(1); }
   copyDir(src, dest);
   console.log(`olustu: ${dest} (template: ${template})`);
-  console.log(`calistir: ${template === "python" ? `cd ${name} && python3 server.py` : `cd ${name} && npm install && npm start`}`);
+  console.log(`calistir: ${template === "python" ? `cd ${name} && python3 server.py` : `cd ${name} && node server.ts`}`);
 }
 
 function cmdAdd(rest) {
@@ -352,13 +352,8 @@ function cmdVerify(rest) {
   const ts = path.join(projectDir, "server.ts");
   if (fs.existsSync(py)) return stdioHandshake("python3", [py]);
   if (fs.existsSync(ts)) {
-    // ts calistirmak icin tsx gerekir; yoksa py esdegerini oner
-    const r = spawnSync("npx", ["--yes", "tsx", ts, "--version"], { encoding: "utf8", timeout: 60000 });
-    if (r.error || r.status !== 0) {
-      console.error("hata: TS verify icin tsx gerekli (npm install -g tsx veya proje icinde npm install). Python sablonunda dogrudan calisir.");
-      process.exit(1);
-    }
-    return stdioHandshake("npx", ["--yes", "tsx", ts]);
+    // Node >=22.18 TS'i native calistirir (type stripping) — bagimlilik yok
+    return stdioHandshake("node", [ts]);
   }
   console.error(`hata: ${projectDir} icinde server.py/server.ts yok`);
   process.exit(1);

@@ -24,10 +24,9 @@ printf '%s\n' \
 
 ```bash
 cd ts
-npm install
 printf '%s\n' \
  '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"topla","arguments":{"sayilar":[2,3,5]}}}' \
- | npx tsx server.ts
+ | node server.ts
 ```
 
 ## Nasıl üretildi

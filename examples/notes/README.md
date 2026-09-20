@@ -25,11 +25,10 @@ printf '%s\n' \
 
 ```bash
 cd ts
-npm install
 printf '%s\n' \
  '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"not_ekle","arguments":{"not":"süt al"}}}' \
  '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"forge://notlar"}}' \
- | npx tsx server.ts
+ | node server.ts
 ```
 
 ## Nasıl üretildi

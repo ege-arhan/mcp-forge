@@ -4,9 +4,9 @@
   "private": true,
   "description": "Minimal MCP stdio server (TS)",
   "scripts": {
-    "start": "tsx server.ts"
+    "start": "node server.ts"
   },
-  "devDependencies": {
-    "tsx": "^4.0.0"
+  "engines": {
+    "node": ">=22.18"
   }
 }

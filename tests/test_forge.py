@@ -160,6 +160,73 @@ class ForgeTest(unittest.TestCase):
         src = (proj / "server.ts").read_text()
         self.assertIn("forge://notlar", src)
         self.assertIn("forge:resources anchor", src)
+        # node --check: TS syntax kilidi (tsx yok)
+        ck = subprocess.run(["node", "--check", str(proj / "server.ts")],
+                            capture_output=True, text=True, timeout=30)
+        self.assertEqual(ck.returncode, 0, ck.stderr)
+        # native runtime e2e: node >=22.18 type stripping, bagimlilik yok
+        stdin = "\n".join(json.dumps(m) for m in [
+            rpc(1, "initialize", {"protocolVersion": "2024-11-05",
+                                     "capabilities": {}, "clientInfo": {}}),
+            {"jsonrpc": "2.0", "method": "notifications/initialized"},
+            rpc(2, "tools/list"),
+            rpc(3, "tools/call", {"name": "hello_world",
+                                      "arguments": {"name": "Ege"}}),
+            rpc(4, "tools/call", {"name": "ozet",
+                                      "arguments": {"input": "merhaba"}}),
+            rpc(5, "resources/read", {"uri": "forge://notlar"}),
+        ]) + "\n"
+        p = subprocess.run(["node", str(proj / "server.ts")], input=stdin,
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        by_id = {m["id"]: m for m in
+                   (json.loads(l) for l in p.stdout.splitlines()
+                    if l.strip())}
+        self.assertEqual(by_id[1]["result"]["serverInfo"]["name"],
+                         "hello-forge")
+        names = {t["name"] for t in by_id[2]["result"]["tools"]}
+        self.assertEqual(names, {"hello_world", "ozet"})
+        self.assertIn("Hello, Ege!",
+                      by_id[3]["result"]["content"][0]["text"])
+        self.assertIn("ozet: merhaba",
+                      by_id[4]["result"]["content"][0]["text"])
+        self.assertIn("notlar",
+                      by_id[5]["result"]["contents"][0]["text"])
+        # forge verify TS'te de calisir (tsx'siz, node native)
+        v = subprocess.run(["node", str(FORGE), "verify",
+                            "--dir", str(proj)],
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+        self.assertIn("tum kontroller gecti", v.stdout)
+
+    def test_ts_malformed_input_never_crashes(self):
+        ts_server = ROOT / "templates" / "ts" / "hello" / "server.ts"
+        raw = ('12\n"just a string"\nnull\n[1,2]\n' + json.dumps(
+            rpc(1, "tools/list")) + "\n")
+        p = subprocess.run(
+            ["node", str(ts_server)], input=raw,
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(p.returncode, 0, p.stderr)
+        out = [json.loads(l) for l in p.stdout.splitlines() if l.strip()]
+        self.assertEqual(len(out), 1)
+        self.assertIn("hello_world",
+                      [t["name"] for t in out[0]["result"]["tools"]])
+
+        bad_params = json.dumps(
+            rpc(7, "tools/call", "bozuk")) + "\n" + json.dumps(
+            rpc(8, "tools/list")) + "\n"
+        p = subprocess.run(
+            ["node", str(ts_server)], input=bad_params,
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(p.returncode, 0, p.stderr)
+        by_id = {m["id"]: m for m in
+                   (json.loads(l) for l in p.stdout.splitlines()
+                    if l.strip())}
+        self.assertEqual(by_id[7]["error"]["code"], -32602)
+        self.assertIn("hello_world",
+                      [t["name"] for t in by_id[8]["result"]["tools"]])
 
     def test_add_tool_rejects_bad_names_and_duplicates(self):
         self.forge("create", "demo", "--template", "python",
