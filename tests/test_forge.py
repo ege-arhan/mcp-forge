@@ -298,5 +298,15 @@ class ForgeTest(unittest.TestCase):
                       by_id[2]["result"]["content"][0]["text"])
 
 
+    def test_ci_node_version_supports_ts_template(self):
+        # TS sablon native type stripping ister (>=22.18); CI daha
+        # dusuk node'da kosarsa TS e2e sessizce kirilir. Kilit burada.
+        import re
+        ci = (ROOT / ".github" / "workflows" / "verify.yml").read_text()
+        m = re.search(r"node-version:\s*(\d+)", ci)
+        self.assertIsNotNone(m, "CI node-version bulunamadi")
+        self.assertGreaterEqual(int(m.group(1)), 22,
+                                "CI node TS sablonu calistiramaz (<22)")
+
 if __name__ == "__main__":
     unittest.main()
