@@ -246,6 +246,10 @@ function addTsPrompt(serverFile, name) {
 }
 
 function cmdCreate(name, rest) {
+  if (!name) {
+    console.error("hata: proje adi gerekli (ornek: forge create demo)");
+    process.exit(1);
+  }
   let template = "python", dir = ".";
   for (let i = 0; i < rest.length; i++) {
     if (rest[i] === "--template") template = rest[++i];

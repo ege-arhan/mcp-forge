@@ -298,6 +298,11 @@ class ForgeTest(unittest.TestCase):
                       by_id[2]["result"]["content"][0]["text"])
 
 
+    def test_create_rejects_missing_name(self):
+        r = self.forge("create")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("proje adi gerekli", r.stderr)
+
     def test_ci_node_version_supports_ts_template(self):
         # TS sablon native type stripping ister (>=22.18); CI daha
         # dusuk node'da kosarsa TS e2e sessizce kirilir. Kilit burada.
