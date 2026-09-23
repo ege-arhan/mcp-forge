@@ -249,6 +249,8 @@ class ForgeTest(unittest.TestCase):
                            capture_output=True, text=True, timeout=30)
         self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
         self.assertIn("tum kontroller gecti", v.stdout)
+        self.assertIn("ping ok", v.stdout)
+        self.assertIn("unknown method -32601", v.stdout)
 
     def test_version_and_help(self):
         v = self.forge("--version")

@@ -316,6 +316,8 @@ function stdioHandshake(serverCmd, serverArgs) {
     req(5, "resources/read", { uri: "forge://readme" }),
     req(6, "prompts/list"),
     req(7, "prompts/get", { name: "greet", arguments: { name: "Forge" } }),
+    req(8, "ping"),
+    req(9, "no/such_method"),
   ].join("\n") + "\n";
   const r = spawnSync(serverCmd, serverArgs, { input: lines, encoding: "utf8", timeout: 30000 });
   if (r.error || r.status !== 0) {
@@ -335,6 +337,8 @@ function stdioHandshake(serverCmd, serverArgs) {
     ["resources/read forge://readme", byId[5] && byId[5].result && String((((byId[5].result.contents || [])[0] || {}).text) || "").includes("hello-forge")],
     ["prompts/list has greet", byId[6] && byId[6].result && (byId[6].result.prompts || []).some((t) => t.name === "greet")],
     ["prompts/get greet", byId[7] && byId[7].result && String((((byId[7].result.messages || [])[0] || {}).content || {}).text || "").includes("Forge")],
+    ["ping ok", byId[8] && byId[8].result && !byId[8].error],
+    ["unknown method -32601", byId[9] && byId[9].error && byId[9].error.code === -32601],
   ];
   let fail = 0;
   for (const [name, ok] of checks) {
