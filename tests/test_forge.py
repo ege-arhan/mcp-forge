@@ -251,6 +251,9 @@ class ForgeTest(unittest.TestCase):
         self.assertIn("tum kontroller gecti", v.stdout)
         self.assertIn("ping ok", v.stdout)
         self.assertIn("unknown method -32601", v.stdout)
+        self.assertIn("unknown tool -32602", v.stdout)
+        self.assertIn("unknown resource -32602", v.stdout)
+        self.assertIn("unknown prompt -32602", v.stdout)
 
     def test_version_and_help(self):
         v = self.forge("--version")

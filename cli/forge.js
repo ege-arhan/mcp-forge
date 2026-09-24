@@ -318,6 +318,9 @@ function stdioHandshake(serverCmd, serverArgs) {
     req(7, "prompts/get", { name: "greet", arguments: { name: "Forge" } }),
     req(8, "ping"),
     req(9, "no/such_method"),
+    req(10, "tools/call", { name: "no_such_tool", arguments: {} }),
+    req(11, "resources/read", { uri: "forge://yok" }),
+    req(12, "prompts/get", { name: "no_such_prompt" }),
   ].join("\n") + "\n";
   const r = spawnSync(serverCmd, serverArgs, { input: lines, encoding: "utf8", timeout: 30000 });
   if (r.error || r.status !== 0) {
@@ -339,6 +342,9 @@ function stdioHandshake(serverCmd, serverArgs) {
     ["prompts/get greet", byId[7] && byId[7].result && String((((byId[7].result.messages || [])[0] || {}).content || {}).text || "").includes("Forge")],
     ["ping ok", byId[8] && byId[8].result && !byId[8].error],
     ["unknown method -32601", byId[9] && byId[9].error && byId[9].error.code === -32601],
+    ["unknown tool -32602", byId[10] && byId[10].error && byId[10].error.code === -32602],
+    ["unknown resource -32602", byId[11] && byId[11].error && byId[11].error.code === -32602],
+    ["unknown prompt -32602", byId[12] && byId[12].error && byId[12].error.code === -32602],
   ];
   let fail = 0;
   for (const [name, ok] of checks) {
