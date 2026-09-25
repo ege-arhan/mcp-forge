@@ -14,7 +14,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --check cli/forge.js && node --check templates/ts/hello/server.ts && python3 -m py_compile templates/python/hello/server.py examples/calculator/python/server.py examples/notes/python/server.py && python3 -m unittest discover -s tests",
+    "test": "node --check cli/forge.js && node --check templates/ts/hello/server.ts && node --check examples/calculator/ts/server.ts && node --check examples/notes/ts/server.ts && python3 -m py_compile templates/python/hello/server.py examples/calculator/python/server.py examples/notes/python/server.py && python3 -m unittest discover -s tests",
     "prepublishOnly": "npm test"
   },
   "engines": {

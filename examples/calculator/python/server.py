@@ -3,11 +3,13 @@
 
 Speaks newline-delimited JSON-RPC 2.0 over stdio (MCP stdio transport).
 Supports: initialize, notifications/*, ping, tools/list, tools/call,
-resources/list, resources/read.
+resources/list, resources/read, prompts/list, prompts/get.
 
 New tools: `forge add tool <name>` inserts a handler + registry entry
 at the forge: anchors below. New resources: `forge add resource <name>`
 inserts a reader + registry entry at the forge:resource anchors below.
+New prompts: `forge add prompt <name>` inserts a builder + registry
+entry at the forge:prompt anchors below.
 Never delete the anchor lines.
 """
 import json
@@ -96,6 +98,22 @@ RESOURCES = {
 }
 
 
+# forge:prompt-builders anchor - new prompt builders go above this line
+def _greet_prompt(args):
+    name = (args or {}).get("name", "world")
+    return [{"role": "user",
+             "content": {"type": "text",
+                         "text": f"Greet {name} warmly in one sentence."}}]
+
+PROMPTS = {
+    # forge:prompts anchor - new prompt entries go above this line
+    "greet": {
+        "description": "Warm greeting prompt. Optional 'name' argument.",
+        "args": [{"name": "name", "required": False}],
+        "builder": _greet_prompt,
+    },
+}
+
 def handle(msg):
     if not isinstance(msg, dict):
         return  # id bilinmez, yanit verilemez — sessiz gec
@@ -110,7 +128,7 @@ def handle(msg):
     if method == "initialize":
         reply(id_, {
             "protocolVersion": "2024-11-05",
-            "capabilities": {"tools": {}, "resources": {}},
+            "capabilities": {"tools": {}, "resources": {}, "prompts": {}},
             "serverInfo": {"name": "hello-forge", "version": "0.1.0"},
         })
     elif method == "ping":
@@ -148,6 +166,22 @@ def handle(msg):
                                           "text": text}]})
             except Exception as e:
                 error(id_, -32603, f"resource failed: {e}")
+    elif method == "prompts/list":
+        reply(id_, {"prompts": [
+            {"name": name, "description": spec["description"],
+             "args": spec["args"]}
+            for name, spec in PROMPTS.items()
+        ]})
+    elif method == "prompts/get":
+        spec = PROMPTS.get(params.get("name"))
+        if spec is None:
+            error(id_, -32602, f"unknown prompt: {params.get('name')}")
+        else:
+            try:
+                reply(id_, {"description": spec["description"],
+                             "messages": spec["builder"](params.get("arguments") or {})})
+            except Exception as e:  # never crash the stdio loop on a prompt bug
+                error(id_, -32603, f"prompt failed: {e}")
     elif method and method.startswith("notifications/"):
         pass  # no response to notifications
     elif id_ is not None:

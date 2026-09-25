@@ -12,6 +12,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CALC = ROOT / "examples" / "calculator" / "python" / "server.py"
 NOTES = ROOT / "examples" / "notes" / "python" / "server.py"
+CALC_TS = ROOT / "examples" / "calculator" / "ts" / "server.ts"
+NOTES_TS = ROOT / "examples" / "notes" / "ts" / "server.ts"
 
 
 def run(messages, server=CALC):
@@ -98,6 +100,47 @@ class TemplatePromptTest(unittest.TestCase):
         self.assertIn("Greet Ege", msg["content"]["text"])
         self.assertEqual(out[4]["error"]["code"], -32602)
 
+
+def run_ts(messages, server):
+    stdin = "\n".join(json.dumps(m) for m in messages) + "\n"
+    p = subprocess.run(["node", str(server)], input=stdin,
+                       capture_output=True, text=True, timeout=30)
+    assert p.returncode == 0, p.stderr
+    return {m["id"]: m for m in
+            (json.loads(l) for l in p.stdout.splitlines()
+             if l.strip() and l.strip().startswith("{"))}
+
+class ExamplesPromptParityTest(unittest.TestCase):
+    # G16: ornekler sablonla ayni primitive setini sunmali
+    # (tools + resources + prompts + greet). Biri geride kalirsa kilit patlar.
+    def test_python_examples_have_greet(self):
+        for server in (CALC, NOTES):
+            out = run([
+                rpc(1, "prompts/list"),
+                rpc(2, "prompts/get", {"name": "greet",
+                                       "arguments": {"name": "Ege"}}),
+                rpc(3, "prompts/get", {"name": "yok"}),
+            ], server=server)
+            names = {t["name"] for t in out[1]["result"]["prompts"]}
+            self.assertIn("greet", names)
+            self.assertIn("Greet Ege",
+                          out[2]["result"]["messages"][0]["content"]["text"])
+            self.assertEqual(out[3]["error"]["code"], -32602)
+
+    def test_ts_examples_have_greet(self):
+        for server in (CALC_TS, NOTES_TS):
+            out = run_ts([
+                rpc(1, "initialize", {"protocolVersion": "2024-11-05",
+                                     "capabilities": {}, "clientInfo": {}}),
+                rpc(2, "prompts/list"),
+                rpc(3, "prompts/get", {"name": "greet",
+                                       "arguments": {"name": "Ege"}}),
+            ], server=server)
+            self.assertIn("prompts", out[1]["result"]["capabilities"])
+            names = {t["name"] for t in out[2]["result"]["prompts"]}
+            self.assertIn("greet", names)
+            self.assertIn("Greet Ege",
+                          out[3]["result"]["messages"][0]["content"]["text"])
 
 if __name__ == "__main__":
     unittest.main()

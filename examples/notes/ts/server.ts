@@ -1,7 +1,7 @@
 // Ornek: not defteri — forge create + add ile uretildi, gercek is yapar.
 // Bellek ici not listesi: `not_ekle` tool'u ekler, `forge://notlar`
 // kaynagi listeler. Tek islem omurlu (restart sifirlar).
-// Run: npx tsx server.ts
+// Run: node server.ts (Node >=22.18)
 import * as readline from "node:readline";
 
 function reply(id: unknown, result: unknown) {
@@ -24,6 +24,12 @@ type ResourceSpec = {
   name: string;
   mimeType: string;
   reader: () => string;
+};
+
+type PromptSpec = {
+  description: string;
+  args: { name: string; required: boolean }[];
+  builder: (args: any) => unknown[];
 };
 
 const notlar: string[] = [];
@@ -84,6 +90,21 @@ const RESOURCES: Record<string, ResourceSpec> = {
   },
 };
 
+// forge:prompt-builders anchor - new prompt builders go above this line
+function greetPrompt(args: any): unknown[] {
+  const name = args?.name ?? "world";
+  return [{ role: "user", content: { type: "text", text: `Greet ${name} warmly in one sentence.` } }];
+}
+
+const PROMPTS: Record<string, PromptSpec> = {
+  // forge:prompts anchor - new prompt entries go above this line
+  greet: {
+    description: "Warm greeting prompt. Optional 'name' argument.",
+    args: [{ name: "name", required: false }],
+    builder: greetPrompt,
+  },
+};
+
 function handle(msg: any) {
   if (!msg || typeof msg !== "object" || Array.isArray(msg)) return;
   const method: string = msg.method;
@@ -97,7 +118,7 @@ function handle(msg: any) {
   if (method === "initialize") {
     reply(id, {
       protocolVersion: "2024-11-05",
-      capabilities: { tools: {}, resources: {} },
+      capabilities: { tools: {}, resources: {}, prompts: {} },
       serverInfo: { name: "hello-forge", version: "0.1.0" },
     });
   } else if (method === "ping") {
@@ -140,6 +161,25 @@ function handle(msg: any) {
         });
       } catch (e) {
         err(id, -32603, `resource failed: ${e}`);
+      }
+    }
+  } else if (method === "prompts/list") {
+    reply(id, {
+      prompts: Object.entries(PROMPTS).map(([name, spec]) => ({
+        name,
+        description: spec.description,
+        args: spec.args,
+      })),
+    });
+  } else if (method === "prompts/get") {
+    const spec = PROMPTS[params.name];
+    if (!spec) {
+      err(id, -32602, `unknown prompt: ${params.name}`);
+    } else {
+      try {
+        reply(id, { description: spec.description, messages: spec.builder(params.arguments ?? {}) });
+      } catch (e) {
+        err(id, -32603, `prompt failed: ${e}`);
       }
     }
   } else if (method?.startsWith("notifications/")) {
