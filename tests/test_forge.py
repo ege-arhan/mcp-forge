@@ -318,5 +318,70 @@ class ForgeTest(unittest.TestCase):
         self.assertGreaterEqual(int(m.group(1)), 22,
                                 "CI node TS sablonu calistiramaz (<22)")
 
+    def test_add_tool_name_matching_schema_word_ok(self):
+        # regression (G19): eski `"name"` substring guard, schema'daki
+        # "input" kelimesiyle cakisiyordu (false positive). Yeni guard
+        # handler/builder imzasina bakar.
+        self.forge("create", "inp", "--template", "python",
+                       "--dir", str(self.tmp))
+        proj = self.tmp / "inp"
+        ok = self.forge("add", "tool", "input", "--dir", str(proj))
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        dup = self.forge("add", "tool", "input", "--dir", str(proj))
+        self.assertNotEqual(dup.returncode, 0)
+        out = run_server(proj / "server.py", [
+            rpc(1, "tools/list"),
+            rpc(2, "tools/call", {"name": "input",
+                                    "arguments": {"input": "x"}}),
+        ])
+        by_id = {m["id"]: m for m in out}
+        names = {t["name"] for t in by_id[1]["result"]["tools"]}
+        self.assertIn("input", names)
+        self.assertIn("input: x",
+                      by_id[2]["result"]["content"][0]["text"])
+
+    def test_add_tool_name_matching_schema_word_ts_ok(self):
+        # TS'de de eski `name: {` guard `input: {` schema satiriyla
+        # cakisiyordu; ayni false positive kilidi.
+        self.forge("create", "inpts", "--template", "ts",
+                       "--dir", str(self.tmp))
+        proj = self.tmp / "inpts"
+        ok = self.forge("add", "tool", "input", "--dir", str(proj))
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        dup = self.forge("add", "tool", "input", "--dir", str(proj))
+        self.assertNotEqual(dup.returncode, 0)
+        ck = subprocess.run(["node", "--check", str(proj / "server.ts")],
+                            capture_output=True, text=True, timeout=30)
+        self.assertEqual(ck.returncode, 0, ck.stderr)
+        # "type": "module" kilidi: ESM uyarisi yok, stderr temiz.
+        p = subprocess.run(
+            ["node", str(proj / "server.ts")],
+            input=json.dumps(rpc(1, "tools/list")) + "\n",
+            capture_output=True, text=True, timeout=30)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(p.stderr, "")
+        names = {t["name"]
+                 for t in json.loads(p.stdout)["result"]["tools"]}
+        self.assertIn("input", names)
+
+    def test_add_prompt_name_matching_schema_word_ok(self):
+        # prompt guard'inda ayni false positive kilidi (python).
+        self.forge("create", "pinp", "--template", "python",
+                       "--dir", str(self.tmp))
+        proj = str(self.tmp / "pinp")
+        ok = self.forge("add", "prompt", "input", "--dir", proj)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        dup = self.forge("add", "prompt", "input", "--dir", proj)
+        self.assertNotEqual(dup.returncode, 0)
+
+    def test_ts_package_json_is_esm(self):
+        # "type": "module" olmazsa node MODULE_TYPELESS_PACKAGE_JSON
+        # uyarisini stderr'e basar; MCP stdio'da stderr temiz olmali.
+        for rel in ["templates/ts/hello/package.json",
+                    "examples/calculator/ts/package.json",
+                    "examples/notes/ts/package.json"]:
+            pkg = json.loads((ROOT / rel).read_text())
+            self.assertEqual(pkg.get("type"), "module", rel)
+
 if __name__ == "__main__":
     unittest.main()

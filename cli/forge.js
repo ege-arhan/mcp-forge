@@ -55,7 +55,7 @@ function spliceBeforeAnchor(src, anchor, block) {
 
 function addPythonTool(serverFile, name) {
   let src = fs.readFileSync(serverFile, "utf8");
-  if (src.includes(`"${name}"`)) {
+  if (src.includes(`def _${name}(`) || src.includes(`"handler": _${name},`)) {
     console.error(`hata: '${name}' zaten kayitli`);
     process.exit(1);
   }
@@ -87,7 +87,8 @@ function addPythonTool(serverFile, name) {
 
 function addTsTool(serverFile, name) {
   let src = fs.readFileSync(serverFile, "utf8");
-  if (src.includes(`${name}: {`) || src.includes(`"${name}"`)) {
+  const fn = toCamel(name);
+  if (src.includes(`function ${fn}(`) || src.includes(`handler: ${fn},`)) {
     console.error(`hata: '${name}' zaten kayitli`);
     process.exit(1);
   }
@@ -97,7 +98,6 @@ function addTsTool(serverFile, name) {
     console.error("hata: forge anchor satirlari bulunamadi (server.ts guncel mi?)");
     process.exit(1);
   }
-  const fn = toCamel(name);
   const handler = [
     `function ${fn}(args: any): unknown[] {`,
     `  const input = args?.input ?? "";`,
@@ -182,7 +182,7 @@ function addTsResource(serverFile, name) {
 
 function addPythonPrompt(serverFile, name) {
   let src = fs.readFileSync(serverFile, "utf8");
-  if (src.includes(`"${name}"`)) {
+  if (src.includes(`def _${name}_prompt(`) || src.includes(`"builder": _${name}_prompt,`)) {
     console.error(`hata: '${name}' zaten kayitli`);
     process.exit(1);
   }
@@ -215,7 +215,8 @@ function addPythonPrompt(serverFile, name) {
 
 function addTsPrompt(serverFile, name) {
   let src = fs.readFileSync(serverFile, "utf8");
-  if (src.includes(`${name}: {`) || src.includes(`"${name}"`)) {
+  const fn = toCamel(name) + "Prompt";
+  if (src.includes(`function ${fn}(`) || src.includes(`builder: ${fn},`)) {
     console.error(`hata: '${name}' zaten kayitli`);
     process.exit(1);
   }
@@ -225,7 +226,6 @@ function addTsPrompt(serverFile, name) {
     console.error("hata: forge prompt anchor satirlari bulunamadi (server.ts guncel mi?)");
     process.exit(1);
   }
-  const fn = toCamel(name) + "Prompt";
   const builder = [
     `function ${fn}(args: any): unknown[] {`,
     `  const input = args?.input ?? "";`,
