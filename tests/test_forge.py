@@ -383,5 +383,23 @@ class ForgeTest(unittest.TestCase):
             pkg = json.loads((ROOT / rel).read_text())
             self.assertEqual(pkg.get("type"), "module", rel)
 
+    def test_list_params_returns_invalid_params_parity(self):
+        # JSON-RPC params liste veya gecersiz tipte geldiginde
+        # hem Python hem TS -32602 "invalid params" dondurur.
+        for tmpl, script in [("python", "server.py"), ("ts", "server.ts")]:
+            self.forge("create", f"prm_{tmpl}", "--template", tmpl,
+                       "--dir", str(self.tmp))
+            target = self.tmp / f"prm_{tmpl}" / script
+            runner = ["python3", str(target)] if tmpl == "python" else ["node", str(target)]
+            p = subprocess.run(
+                runner,
+                input=json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": []}) + "\n",
+                capture_output=True, text=True, timeout=30
+            )
+            self.assertEqual(p.returncode, 0, p.stderr)
+            res = json.loads(p.stdout.strip())
+            self.assertEqual(res.get("error", {}).get("code"), -32602, f"{tmpl} code mismatch")
+            self.assertEqual(res.get("error", {}).get("message"), "invalid params", f"{tmpl} message mismatch")
+
 if __name__ == "__main__":
     unittest.main()
