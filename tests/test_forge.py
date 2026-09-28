@@ -401,5 +401,30 @@ class ForgeTest(unittest.TestCase):
             self.assertEqual(res.get("error", {}).get("code"), -32602, f"{tmpl} code mismatch")
             self.assertEqual(res.get("error", {}).get("message"), "invalid params", f"{tmpl} message mismatch")
 
+    def test_non_dict_arguments_parity(self):
+        # tools/call ve prompts/get icinde arguments non-dict ("foo", [1,2], null)
+        # geldiginde hem Python hem TS sunucu cokmez, bos dict gibi ele alir.
+        for tmpl, script in [("python", "server.py"), ("ts", "server.ts")]:
+            self.forge("create", f"arg_{tmpl}", "--template", tmpl,
+                       "--dir", str(self.tmp))
+            target = self.tmp / f"arg_{tmpl}" / script
+            runner = ["python3", str(target)] if tmpl == "python" else ["node", str(target)]
+            for bad_args in ["not-an-object", [1, 2], None]:
+                p = subprocess.run(
+                    runner,
+                    input=json.dumps({
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/call",
+                        "params": {"name": "hello_world", "arguments": bad_args}
+                    }) + "\n",
+                    capture_output=True, text=True, timeout=30
+                )
+                self.assertEqual(p.returncode, 0, f"{tmpl} crashed with args={bad_args}: {p.stderr}")
+                res = json.loads(p.stdout.strip())
+                self.assertNotIn("error", res, f"{tmpl} failed on bad args={bad_args}")
+                text = res.get("result", {}).get("content", [{}])[0].get("text", "")
+                self.assertIn("Hello, world!", text)
+
 if __name__ == "__main__":
     unittest.main()

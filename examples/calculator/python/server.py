@@ -147,7 +147,7 @@ def handle(msg):
             error(id_, -32602, f"unknown tool: {params.get('name')}")
         else:
             try:
-                reply(id_, {"content": spec["handler"](params.get("arguments") or {})})
+                reply(id_, {"content": spec["handler"](params.get("arguments") if isinstance(params.get("arguments"), dict) else {})})
             except Exception as e:  # never crash the stdio loop on a tool bug
                 error(id_, -32603, f"tool failed: {e}")
     elif method == "resources/list":
@@ -181,7 +181,7 @@ def handle(msg):
         else:
             try:
                 reply(id_, {"description": spec["description"],
-                             "messages": spec["builder"](params.get("arguments") or {})})
+                             "messages": spec["builder"](params.get("arguments") if isinstance(params.get("arguments"), dict) else {})})
             except Exception as e:  # never crash the stdio loop on a prompt bug
                 error(id_, -32603, f"prompt failed: {e}")
     elif method and method.startswith("notifications/"):
