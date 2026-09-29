@@ -426,5 +426,34 @@ class ForgeTest(unittest.TestCase):
                 text = res.get("result", {}).get("content", [{}])[0].get("text", "")
                 self.assertIn("Hello, world!", text)
 
+    def test_prototype_properties_treated_as_unknown_parity(self):
+        # TS/JS nesnelerinde 'toString', 'valueOf', '__proto__' gibi ozellikler
+        # prototype zincirinden gelir. Python dict ile ayni davranmali:
+        # boyle bir arac/kaynak/prompt tanimli degilse -32602 donmeli.
+        for tmpl, script in [("python", "server.py"), ("ts", "server.ts")]:
+            self.forge("create", f"proto_{tmpl}", "--template", tmpl,
+                       "--dir", str(self.tmp))
+            target = self.tmp / f"proto_{tmpl}" / script
+            runner = ["python3", str(target)] if tmpl == "python" else ["node", str(target)]
+            for method, key, expected_msg in [
+                ("tools/call", "name", "unknown tool: toString"),
+                ("resources/read", "uri", "unknown resource: toString"),
+                ("prompts/get", "name", "unknown prompt: toString"),
+            ]:
+                p = subprocess.run(
+                    runner,
+                    input=json.dumps({
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": method,
+                        "params": {key: "toString"}
+                    }) + "\n",
+                    capture_output=True, text=True, timeout=30
+                )
+                self.assertEqual(p.returncode, 0, f"{tmpl} crashed: {p.stderr}")
+                res = json.loads(p.stdout.strip())
+                self.assertEqual(res.get("error", {}).get("code"), -32602, f"{tmpl} {method} code")
+                self.assertEqual(res.get("error", {}).get("message"), expected_msg, f"{tmpl} {method} message")
+
 if __name__ == "__main__":
     unittest.main()
