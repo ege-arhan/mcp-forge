@@ -455,5 +455,27 @@ class ForgeTest(unittest.TestCase):
                 self.assertEqual(res.get("error", {}).get("code"), -32602, f"{tmpl} {method} code")
                 self.assertEqual(res.get("error", {}).get("message"), expected_msg, f"{tmpl} {method} message")
 
+    def test_non_string_method_parity(self):
+        # JSON-RPC method alani string disinda (int/list/null) geldiginde
+        # hem Python hem TS cokmez (AttributeError/TypeError yok), -32601 dondurur.
+        for tmpl, script in [("python", "server.py"), ("ts", "server.ts")]:
+            self.forge("create", f"mth_{tmpl}", "--template", tmpl,
+                       "--dir", str(self.tmp))
+            target = self.tmp / f"mth_{tmpl}" / script
+            runner = ["python3", str(target)] if tmpl == "python" else ["node", str(target)]
+            for bad_method in [123, [], True]:
+                p = subprocess.run(
+                    runner,
+                    input=json.dumps({
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": bad_method
+                    }) + "\n",
+                    capture_output=True, text=True, timeout=30
+                )
+                self.assertEqual(p.returncode, 0, f"{tmpl} crashed with method={bad_method}: {p.stderr}")
+                res = json.loads(p.stdout.strip())
+                self.assertEqual(res.get("error", {}).get("code"), -32601, f"{tmpl} method={bad_method} code")
+
 if __name__ == "__main__":
     unittest.main()

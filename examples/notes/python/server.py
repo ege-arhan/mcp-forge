@@ -161,7 +161,7 @@ def handle(msg):
                              "messages": spec["builder"](params.get("arguments") if isinstance(params.get("arguments"), dict) else {})})
             except Exception as e:  # never crash the stdio loop on a prompt bug
                 error(id_, -32603, f"prompt failed: {e}")
-    elif method and method.startswith("notifications/"):
+    elif isinstance(method, str) and method.startswith("notifications/"):
         pass  # no response to notifications
     elif id_ is not None:
         error(id_, -32601, f"unknown method: {method}")

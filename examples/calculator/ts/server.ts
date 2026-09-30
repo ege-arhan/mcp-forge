@@ -184,7 +184,7 @@ function handle(msg: any) {
         err(id, -32603, `prompt failed: ${e}`);
       }
     }
-  } else if (method?.startsWith("notifications/")) {
+  } else if (typeof method === "string" && method.startsWith("notifications/")) {
     // no response
   } else if (id !== undefined) {
     err(id, -32601, `unknown method: ${method}`);
