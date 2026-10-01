@@ -477,5 +477,35 @@ class ForgeTest(unittest.TestCase):
                 res = json.loads(p.stdout.strip())
                 self.assertEqual(res.get("error", {}).get("code"), -32601, f"{tmpl} method={bad_method} code")
 
+
+    def test_unhashable_key_in_params_parity(self):
+        # tools/call, resources/read ve prompts/get icinde name veya uri
+        # unhashable (list/dict) veya non-string geldiginde Python cökmez (TypeError yok),
+        # hem Python hem TS -32602 doner.
+        for tmpl, script in [("python", "server.py"), ("ts", "server.ts")]:
+            self.forge("create", f"unh_{tmpl}", "--template", tmpl,
+                       "--dir", str(self.tmp))
+            target = self.tmp / f"unh_{tmpl}" / script
+            runner = ["python3", str(target)] if tmpl == "python" else ["node", str(target)]
+            for method, key in [
+                ("tools/call", "name"),
+                ("resources/read", "uri"),
+                ("prompts/get", "name"),
+            ]:
+                for bad_val in [[], {}, 123]:
+                    p = subprocess.run(
+                        runner,
+                        input=json.dumps({
+                            "jsonrpc": "2.0",
+                            "id": 1,
+                            "method": method,
+                            "params": {key: bad_val}
+                        }) + "\n",
+                        capture_output=True, text=True, timeout=30
+                    )
+                    self.assertEqual(p.returncode, 0, f"{tmpl} crashed with {key}={bad_val}: {p.stderr}")
+                    res = json.loads(p.stdout.strip())
+                    self.assertEqual(res.get("error", {}).get("code"), -32602, f"{tmpl} {method} {key}={bad_val} code")
+
 if __name__ == "__main__":
     unittest.main()

@@ -142,7 +142,8 @@ def handle(msg):
             for name, spec in TOOLS.items()
         ]})
     elif method == "tools/call":
-        spec = TOOLS.get(params.get("name"))
+        name = params.get("name")
+        spec = TOOLS.get(name) if isinstance(name, str) else None
         if spec is None:
             error(id_, -32602, f"unknown tool: {params.get('name')}")
         else:
@@ -157,7 +158,8 @@ def handle(msg):
             for uri, spec in RESOURCES.items()
         ]})
     elif method == "resources/read":
-        spec = RESOURCES.get(params.get("uri"))
+        uri = params.get("uri")
+        spec = RESOURCES.get(uri) if isinstance(uri, str) else None
         if spec is None:
             error(id_, -32602, f"unknown resource: {params.get('uri')}")
         else:
@@ -175,7 +177,8 @@ def handle(msg):
             for name, spec in PROMPTS.items()
         ]})
     elif method == "prompts/get":
-        spec = PROMPTS.get(params.get("name"))
+        name = params.get("name")
+        spec = PROMPTS.get(name) if isinstance(name, str) else None
         if spec is None:
             error(id_, -32602, f"unknown prompt: {params.get('name')}")
         else:
