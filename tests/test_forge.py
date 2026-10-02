@@ -507,5 +507,34 @@ class ForgeTest(unittest.TestCase):
                     res = json.loads(p.stdout.strip())
                     self.assertEqual(res.get("error", {}).get("code"), -32602, f"{tmpl} {method} {key}={bad_val} code")
 
+    def test_array_key_string_type_guard_parity(self):
+        # params icindeki name/uri degeri array olarak gecerli bir arac/kaynak/prompt
+        # adi icerse bile (orn: ["hello_world"]), TS tarafinda JS array-to-string cast
+        # nedeniyle yanlislikla calistirilmamali; hem Python hem TS -32602 donmeli.
+        for tmpl, script in [("python", "server.py"), ("ts", "server.ts")]:
+            self.forge("create", f"arr_{tmpl}", "--template", tmpl,
+                       "--dir", str(self.tmp))
+            target = self.tmp / f"arr_{tmpl}" / script
+            runner = ["python3", str(target)] if tmpl == "python" else ["node", str(target)]
+            for method, key, val in [
+                ("tools/call", "name", ["hello_world"]),
+                ("resources/read", "uri", ["forge://readme"]),
+                ("prompts/get", "name", ["greet"]),
+            ]:
+                p = subprocess.run(
+                    runner,
+                    input=json.dumps({
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": method,
+                        "params": {key: val}
+                    }) + "\n",
+                    capture_output=True, text=True, timeout=30
+                )
+                self.assertEqual(p.returncode, 0, f"{tmpl} crashed with {key}={val}: {p.stderr}")
+                res = json.loads(p.stdout.strip())
+                self.assertNotIn("result", res, f"{tmpl} unexpectedly succeeded with array key: {res}")
+                self.assertEqual(res.get("error", {}).get("code"), -32602, f"{tmpl} {method} {key}={val} code")
+
 if __name__ == "__main__":
     unittest.main()

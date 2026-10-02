@@ -111,7 +111,7 @@ function handle(msg: any) {
       })),
     });
   } else if (method === "tools/call") {
-    const spec = Object.hasOwn(TOOLS, params.name) ? TOOLS[params.name] : undefined;
+    const spec = typeof params.name === "string" && Object.hasOwn(TOOLS, params.name) ? TOOLS[params.name] : undefined;
     if (!spec) {
       err(id, -32602, `unknown tool: ${params.name}`);
     } else {
@@ -130,7 +130,7 @@ function handle(msg: any) {
       })),
     });
   } else if (method === "resources/read") {
-    const spec = Object.hasOwn(RESOURCES, params.uri) ? RESOURCES[params.uri] : undefined;
+    const spec = typeof params.uri === "string" && Object.hasOwn(RESOURCES, params.uri) ? RESOURCES[params.uri] : undefined;
     if (!spec) {
       err(id, -32602, `unknown resource: ${params.uri}`);
     } else {
@@ -151,7 +151,7 @@ function handle(msg: any) {
       })),
     });
   } else if (method === "prompts/get") {
-    const spec = Object.hasOwn(PROMPTS, params.name) ? PROMPTS[params.name] : undefined;
+    const spec = typeof params.name === "string" && Object.hasOwn(PROMPTS, params.name) ? PROMPTS[params.name] : undefined;
     if (!spec) {
       err(id, -32602, `unknown prompt: ${params.name}`);
     } else {
