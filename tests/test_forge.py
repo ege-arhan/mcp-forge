@@ -536,5 +536,32 @@ class ForgeTest(unittest.TestCase):
                 self.assertNotIn("result", res, f"{tmpl} unexpectedly succeeded with array key: {res}")
                 self.assertEqual(res.get("error", {}).get("code"), -32602, f"{tmpl} {method} {key}={val} code")
 
+    def test_ts_arguments_object_type_guard_parity(self):
+        # prompts/get ve tools/call icinde params.arguments array veya non-object
+        # geldiginde TS tarafinda JS object prototype ya da array-as-object gecisi
+        # olmadan default {} olarak ele alinmali; prompts/get ve tools/call
+        # basariyla calisip default yanit donmeli (Python davranisi ile esitlik).
+        for tmpl, script in [("python", "server.py"), ("ts", "server.ts")]:
+            self.forge("create", f"args_guard_{tmpl}", "--template", tmpl,
+                       "--dir", str(self.tmp))
+            target = self.tmp / f"args_guard_{tmpl}" / script
+            runner = ["python3", str(target)] if tmpl == "python" else ["node", str(target)]
+            for bad_args in [[1, 2], "bad_str", 123, True]:
+                p = subprocess.run(
+                    runner,
+                    input=json.dumps({
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "prompts/get",
+                        "params": {"name": "greet", "arguments": bad_args}
+                    }) + "\n",
+                    capture_output=True, text=True, timeout=30
+                )
+                self.assertEqual(p.returncode, 0, f"{tmpl} crashed on prompts/get with args={bad_args}: {p.stderr}")
+                res = json.loads(p.stdout.strip())
+                self.assertNotIn("error", res, f"{tmpl} failed on prompts/get args={bad_args}: {res}")
+                text_out = res.get("result", {}).get("messages", [{}])[0].get("content", {}).get("text", "")
+                self.assertIn("world", text_out)
+
 if __name__ == "__main__":
     unittest.main()

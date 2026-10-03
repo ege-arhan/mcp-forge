@@ -137,7 +137,7 @@ function handle(msg: any) {
       err(id, -32602, `unknown tool: ${params.name}`);
     } else {
       try {
-        reply(id, { content: spec.handler(params.arguments ?? {}) });
+        reply(id, { content: spec.handler(params.arguments && typeof params.arguments === "object" && !Array.isArray(params.arguments) ? params.arguments : {}) });
       } catch (e) {
         err(id, -32603, `tool failed: ${e}`);
       }
@@ -177,7 +177,7 @@ function handle(msg: any) {
       err(id, -32602, `unknown prompt: ${params.name}`);
     } else {
       try {
-        reply(id, { description: spec.description, messages: spec.builder(params.arguments ?? {}) });
+        reply(id, { description: spec.description, messages: spec.builder(params.arguments && typeof params.arguments === "object" && !Array.isArray(params.arguments) ? params.arguments : {}) });
       } catch (e) {
         err(id, -32603, `prompt failed: ${e}`);
       }
