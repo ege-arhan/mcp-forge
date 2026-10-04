@@ -252,9 +252,19 @@ function cmdCreate(name, rest) {
   }
   let template = "python", dir = ".";
   for (let i = 0; i < rest.length; i++) {
-    if (rest[i] === "--template") template = rest[++i];
-    else if (rest[i] === "--dir") dir = rest[++i];
-    else { console.error(`bilinmeyen arg: ${rest[i]}`); process.exit(1); }
+    if (rest[i] === "--template") {
+      if (i + 1 >= rest.length) {
+        console.error("hata: --template icin deger gerekli");
+        process.exit(1);
+      }
+      template = rest[++i];
+    } else if (rest[i] === "--dir") {
+      if (i + 1 >= rest.length) {
+        console.error("hata: --dir icin deger gerekli");
+        process.exit(1);
+      }
+      dir = rest[++i];
+    } else { console.error(`bilinmeyen arg: ${rest[i]}`); process.exit(1); }
   }
   if (!TEMPLATES.includes(template)) {
     console.error(`template '${template}' yok. secenek: ${TEMPLATES.join(", ")}`);
@@ -277,8 +287,13 @@ function cmdAdd(rest) {
   }
   let dir = ".";
   for (let i = 0; i < tail.length; i++) {
-    if (tail[i] === "--dir") dir = tail[++i];
-    else { console.error(`bilinmeyen arg: ${tail[i]}`); process.exit(1); }
+    if (tail[i] === "--dir") {
+      if (i + 1 >= tail.length) {
+        console.error("hata: --dir icin deger gerekli");
+        process.exit(1);
+      }
+      dir = tail[++i];
+    } else { console.error(`bilinmeyen arg: ${tail[i]}`); process.exit(1); }
   }
   const projectDir = path.resolve(dir);
   const py = path.join(projectDir, "server.py");
@@ -358,8 +373,13 @@ function stdioHandshake(serverCmd, serverArgs) {
 function cmdVerify(rest) {
   let dir = ".";
   for (let i = 0; i < rest.length; i++) {
-    if (rest[i] === "--dir") dir = rest[++i];
-    else { console.error(`bilinmeyen arg: ${rest[i]}`); process.exit(1); }
+    if (rest[i] === "--dir") {
+      if (i + 1 >= rest.length) {
+        console.error("hata: --dir icin deger gerekli");
+        process.exit(1);
+      }
+      dir = rest[++i];
+    } else { console.error(`bilinmeyen arg: ${rest[i]}`); process.exit(1); }
   }
   const projectDir = path.resolve(dir);
   const py = path.join(projectDir, "server.py");

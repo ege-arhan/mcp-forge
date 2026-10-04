@@ -563,5 +563,24 @@ class ForgeTest(unittest.TestCase):
                 text_out = res.get("result", {}).get("messages", [{}])[0].get("content", {}).get("text", "")
                 self.assertIn("world", text_out)
 
+    def test_missing_flag_values_exit_cleanly(self):
+        # --dir veya --template bayraklarina deger verilmediginde CLI
+        # TypeError firlatmadan temiz hata mesaji verip cikmali (exit code != 0).
+        r = self.forge("create", "flag_demo", "--dir")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("hata: --dir icin deger gerekli", r.stderr)
+
+        r = self.forge("create", "flag_demo", "--template")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("hata: --template icin deger gerekli", r.stderr)
+
+        r = self.forge("add", "tool", "test_tool", "--dir")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("hata: --dir icin deger gerekli", r.stderr)
+
+        r = self.forge("verify", "--dir")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("hata: --dir icin deger gerekli", r.stderr)
+
 if __name__ == "__main__":
     unittest.main()
