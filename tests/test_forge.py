@@ -582,5 +582,14 @@ class ForgeTest(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("hata: --dir icin deger gerekli", r.stderr)
 
+    def test_create_with_flag_as_name_rejected(self):
+        # Proje adi yerine bayrak (orn: --dir, -v, --template) gecildiginde
+        # klasor olusturmadan temiz hata verip cikmali (G28).
+        for flag in ["--dir", "--template", "-v", "--help"]:
+            r = self.forge("create", flag)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("hata: proje adi gerekli", r.stderr)
+            self.assertFalse((self.tmp / flag).exists())
+
 if __name__ == "__main__":
     unittest.main()

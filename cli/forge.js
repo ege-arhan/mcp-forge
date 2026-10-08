@@ -246,7 +246,7 @@ function addTsPrompt(serverFile, name) {
 }
 
 function cmdCreate(name, rest) {
-  if (!name) {
+  if (!name || name.startsWith("-")) {
     console.error("hata: proje adi gerekli (ornek: forge create demo)");
     process.exit(1);
   }
