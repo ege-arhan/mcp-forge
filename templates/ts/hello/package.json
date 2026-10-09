@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Minimal MCP stdio server (TS)",
   "scripts": {
+    "build": "tsc",
     "start": "node server.ts"
   },
   "engines": {
