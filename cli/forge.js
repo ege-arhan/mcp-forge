@@ -246,10 +246,12 @@ function addTsPrompt(serverFile, name) {
 }
 
 function cmdCreate(name, rest) {
-  if (!name || name.startsWith("-")) {
+  const cleanName = typeof name === "string" ? name.trim() : "";
+  if (!cleanName || cleanName.startsWith("-")) {
     console.error("hata: proje adi gerekli (ornek: forge create demo)");
     process.exit(1);
   }
+  name = cleanName;
   let template = "python", dir = ".";
   for (let i = 0; i < rest.length; i++) {
     if (rest[i] === "--template") {
