@@ -142,5 +142,20 @@ class ExamplesPromptParityTest(unittest.TestCase):
             self.assertIn("Greet Ege",
                           out[3]["result"]["messages"][0]["content"]["text"])
 
+class ExamplesTsConfigParityTest(unittest.TestCase):
+    # G30: ts ornekleri template ile ayni tsconfig.json ve build scriptine sahip olmali
+    def test_ts_examples_have_tsconfig_and_build_script(self):
+        for ex in ["calculator", "notes"]:
+            ts_dir = ROOT / "examples" / ex / "ts"
+            tsconfig = ts_dir / "tsconfig.json"
+            pkg = ts_dir / "package.json"
+            self.assertTrue(tsconfig.exists(), f"{ex}/ts tsconfig.json eksik")
+            with open(tsconfig) as f:
+                ts_data = json.load(f)
+            self.assertEqual(ts_data.get("compilerOptions", {}).get("target"), "ES2022")
+            with open(pkg) as f:
+                pkg_data = json.load(f)
+            self.assertEqual(pkg_data.get("scripts", {}).get("build"), "tsc")
+
 if __name__ == "__main__":
     unittest.main()
