@@ -582,6 +582,20 @@ class ForgeTest(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("hata: --dir icin deger gerekli", r.stderr)
 
+        # G31: whitespace-only values for --dir also rejected cleanly
+        for empty_val in ["   ", "\t\n"]:
+            r = self.forge("create", "flag_demo", "--dir", empty_val)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("hata: --dir icin deger gerekli", r.stderr)
+
+            r = self.forge("add", "tool", "test_tool", "--dir", empty_val)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("hata: --dir icin deger gerekli", r.stderr)
+
+            r = self.forge("verify", "--dir", empty_val)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("hata: --dir icin deger gerekli", r.stderr)
+
     def test_create_with_flag_as_name_rejected(self):
         # Proje adi yerine bayrak (orn: --dir, -v, --template) veya bosluk
         # gecildiginde klasor olusturmadan temiz hata verip cikmali (G28, G29).

@@ -261,11 +261,11 @@ function cmdCreate(name, rest) {
       }
       template = rest[++i];
     } else if (rest[i] === "--dir") {
-      if (i + 1 >= rest.length) {
+      if (i + 1 >= rest.length || !rest[i + 1].trim()) {
         console.error("hata: --dir icin deger gerekli");
         process.exit(1);
       }
-      dir = rest[++i];
+      dir = rest[++i].trim();
     } else { console.error(`bilinmeyen arg: ${rest[i]}`); process.exit(1); }
   }
   if (!TEMPLATES.includes(template)) {
@@ -290,11 +290,11 @@ function cmdAdd(rest) {
   let dir = ".";
   for (let i = 0; i < tail.length; i++) {
     if (tail[i] === "--dir") {
-      if (i + 1 >= tail.length) {
+      if (i + 1 >= tail.length || !tail[i + 1].trim()) {
         console.error("hata: --dir icin deger gerekli");
         process.exit(1);
       }
-      dir = tail[++i];
+      dir = tail[++i].trim();
     } else { console.error(`bilinmeyen arg: ${tail[i]}`); process.exit(1); }
   }
   const projectDir = path.resolve(dir);
@@ -376,11 +376,11 @@ function cmdVerify(rest) {
   let dir = ".";
   for (let i = 0; i < rest.length; i++) {
     if (rest[i] === "--dir") {
-      if (i + 1 >= rest.length) {
+      if (i + 1 >= rest.length || !rest[i + 1].trim()) {
         console.error("hata: --dir icin deger gerekli");
         process.exit(1);
       }
-      dir = rest[++i];
+      dir = rest[++i].trim();
     } else { console.error(`bilinmeyen arg: ${rest[i]}`); process.exit(1); }
   }
   const projectDir = path.resolve(dir);
