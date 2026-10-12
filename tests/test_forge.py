@@ -574,6 +574,12 @@ class ForgeTest(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("hata: --template icin deger gerekli", r.stderr)
 
+        # whitespace-only values for --template also rejected cleanly
+        for empty_val in ["   ", "\t\n"]:
+            r = self.forge("create", "flag_demo", "--template", empty_val)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("hata: --template icin deger gerekli", r.stderr)
+
         r = self.forge("add", "tool", "test_tool", "--dir")
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("hata: --dir icin deger gerekli", r.stderr)

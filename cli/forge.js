@@ -255,11 +255,11 @@ function cmdCreate(name, rest) {
   let template = "python", dir = ".";
   for (let i = 0; i < rest.length; i++) {
     if (rest[i] === "--template") {
-      if (i + 1 >= rest.length) {
+      if (i + 1 >= rest.length || !rest[i + 1].trim()) {
         console.error("hata: --template icin deger gerekli");
         process.exit(1);
       }
-      template = rest[++i];
+      template = rest[++i].trim();
     } else if (rest[i] === "--dir") {
       if (i + 1 >= rest.length || !rest[i + 1].trim()) {
         console.error("hata: --dir icin deger gerekli");
