@@ -634,7 +634,8 @@ class ForgeTest(unittest.TestCase):
         self.assertIn("hata: --dir icin deger gerekli", r.stderr)
 
         # G31: whitespace-only values for --dir also rejected cleanly
-        for empty_val in ["   ", "\t\n"]:
+        # G34: flags passed as --dir value also rejected cleanly
+        for empty_val in ["   ", "\t\n", "--template", "-v", "--help"]:
             r = self.forge("create", "flag_demo", "--dir", empty_val)
             self.assertNotEqual(r.returncode, 0)
             self.assertIn("hata: --dir icin deger gerekli", r.stderr)

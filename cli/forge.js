@@ -261,7 +261,7 @@ function cmdCreate(name, rest) {
       }
       template = rest[++i].trim();
     } else if (rest[i] === "--dir") {
-      if (i + 1 >= rest.length || !rest[i + 1].trim()) {
+      if (i + 1 >= rest.length || !rest[i + 1].trim() || rest[i + 1].trim().startsWith("-")) {
         console.error("hata: --dir icin deger gerekli");
         process.exit(1);
       }
@@ -290,7 +290,7 @@ function cmdAdd(rest) {
   let dir = ".";
   for (let i = 0; i < tail.length; i++) {
     if (tail[i] === "--dir") {
-      if (i + 1 >= tail.length || !tail[i + 1].trim()) {
+      if (i + 1 >= tail.length || !tail[i + 1].trim() || tail[i + 1].trim().startsWith("-")) {
         console.error("hata: --dir icin deger gerekli");
         process.exit(1);
       }
@@ -376,7 +376,7 @@ function cmdVerify(rest) {
   let dir = ".";
   for (let i = 0; i < rest.length; i++) {
     if (rest[i] === "--dir") {
-      if (i + 1 >= rest.length || !rest[i + 1].trim()) {
+      if (i + 1 >= rest.length || !rest[i + 1].trim() || rest[i + 1].trim().startsWith("-")) {
         console.error("hata: --dir icin deger gerekli");
         process.exit(1);
       }
