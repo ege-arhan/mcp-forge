@@ -187,6 +187,32 @@ class ForgeTest(unittest.TestCase):
         dup = self.forge("add", "prompt", "ozet", "--dir", proj)
         self.assertNotEqual(dup.returncode, 0)
 
+    def test_add_resource_rejects_bad_names_and_duplicates(self):
+        self.forge("create", "rdem", "--template", "python",
+                   "--dir", str(self.tmp))
+        proj = str(self.tmp / "rdem")
+        bad = self.forge("add", "resource", "Ozet!", "--dir", proj)
+        self.assertNotEqual(bad.returncode, 0)
+        ok = self.forge("add", "resource", "notlar", "--dir", proj)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        dup = self.forge("add", "resource", "notlar", "--dir", proj)
+        self.assertNotEqual(dup.returncode, 0)
+        default_dup = self.forge("add", "resource", "readme", "--dir", proj)
+        self.assertNotEqual(default_dup.returncode, 0)
+
+        # TS template parity lock
+        self.forge("create", "rdem-ts", "--template", "ts",
+                   "--dir", str(self.tmp))
+        proj_ts = str(self.tmp / "rdem-ts")
+        bad_ts = self.forge("add", "resource", "Ozet!", "--dir", proj_ts)
+        self.assertNotEqual(bad_ts.returncode, 0)
+        dup_ts_default = self.forge("add", "resource", "readme", "--dir", proj_ts)
+        self.assertNotEqual(dup_ts_default.returncode, 0)
+        ok_ts = self.forge("add", "resource", "notlar", "--dir", proj_ts)
+        self.assertEqual(ok_ts.returncode, 0, ok_ts.stderr)
+        dup_ts = self.forge("add", "resource", "notlar", "--dir", proj_ts)
+        self.assertNotEqual(dup_ts.returncode, 0)
+
     def test_create_ts_add_tool_syntax(self):
         r = self.forge("create", "demo-ts", "--template", "ts",
                        "--dir", str(self.tmp))
@@ -219,7 +245,11 @@ class ForgeTest(unittest.TestCase):
                                       "arguments": {"name": "Ege"}}),
             rpc(4, "tools/call", {"name": "ozet",
                                       "arguments": {"input": "merhaba"}}),
-            rpc(5, "resources/read", {"uri": "forge://notlar"}),
+            rpc(5, "tools/call", {"name": "yok"}),
+            rpc(6, "resources/list"),
+            rpc(7, "resources/read", {"uri": "forge://readme"}),
+            rpc(8, "resources/read", {"uri": "forge://notlar"}),
+            rpc(9, "resources/read", {"uri": "forge://yok"}),
         ]) + "\n"
         p = subprocess.run(["node", str(proj / "server.ts")], input=stdin,
                            capture_output=True, text=True, timeout=30)
@@ -235,8 +265,14 @@ class ForgeTest(unittest.TestCase):
                       by_id[3]["result"]["content"][0]["text"])
         self.assertIn("ozet: merhaba",
                       by_id[4]["result"]["content"][0]["text"])
+        self.assertEqual(by_id[5]["error"]["code"], -32602)
+        uris = {t["uri"] for t in by_id[6]["result"]["resources"]}
+        self.assertEqual(uris, {"forge://readme", "forge://notlar"})
+        self.assertIn("hello-forge",
+                      by_id[7]["result"]["contents"][0]["text"])
         self.assertIn("notlar",
-                      by_id[5]["result"]["contents"][0]["text"])
+                      by_id[8]["result"]["contents"][0]["text"])
+        self.assertEqual(by_id[9]["error"]["code"], -32602)
         # forge verify TS'te de calisir (tsx'siz, node native)
         v = subprocess.run(["node", str(FORGE), "verify",
                             "--dir", str(proj)],
