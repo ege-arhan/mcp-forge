@@ -656,7 +656,8 @@ class ForgeTest(unittest.TestCase):
         self.assertIn("hata: --template icin deger gerekli", r.stderr)
 
         # whitespace-only values for --template also rejected cleanly
-        for empty_val in ["   ", "\t\n"]:
+        # G36: flags passed as --template value also rejected cleanly
+        for empty_val in ["   ", "\t\n", "--dir", "-v", "--help"]:
             r = self.forge("create", "flag_demo", "--template", empty_val)
             self.assertNotEqual(r.returncode, 0)
             self.assertIn("hata: --template icin deger gerekli", r.stderr)
