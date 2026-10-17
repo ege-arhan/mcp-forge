@@ -87,7 +87,7 @@ def handle(msg):
     if params is None:
         params = {}
     elif not isinstance(params, dict):
-        if id_ is not None:
+        if "id" in msg:
             error(id_, -32602, "invalid params")
         return
 
@@ -153,7 +153,7 @@ def handle(msg):
                 error(id_, -32603, f"prompt failed: {e}")
     elif isinstance(method, str) and method.startswith("notifications/"):
         pass  # no response to notifications
-    elif id_ is not None:
+    elif "id" in msg:
         error(id_, -32601, f"unknown method: {method}")
 
 

@@ -696,5 +696,39 @@ class ForgeTest(unittest.TestCase):
             if clean:
                 self.assertFalse((self.tmp / clean).exists())
 
+    def test_null_id_request_parity(self):
+        # JSON-RPC 2.0: 'id' alani null olsa bile istek nesnesidir (notification degildir).
+        # Bilinmeyen method veya gecersiz params durumunda hem Python hem TS sunucu
+        # id: null iceren JSON-RPC hata yaniti uretmelidir (parity lock).
+        for tmpl, script in [("python", "server.py"), ("ts", "server.ts")]:
+            self.forge("create", f"null_id_{tmpl}", "--template", tmpl,
+                       "--dir", str(self.tmp))
+            target = self.tmp / f"null_id_{tmpl}" / script
+            runner = ["python3", str(target)] if tmpl == "python" else ["node", str(target)]
+
+            # 1. Bilinmeyen method ile id: null
+            p = subprocess.run(
+                runner,
+                input=json.dumps({"jsonrpc": "2.0", "id": None, "method": "unknown/method"}) + "\n",
+                capture_output=True, text=True, timeout=30
+            )
+            self.assertEqual(p.returncode, 0, f"{tmpl} crashed: {p.stderr}")
+            res = json.loads(p.stdout.strip())
+            self.assertIn("error", res, f"{tmpl} did not return error for null id request")
+            self.assertEqual(res["error"]["code"], -32601)
+            self.assertIsNone(res.get("id"))
+
+            # 2. Gecersiz params ile id: null
+            p2 = subprocess.run(
+                runner,
+                input=json.dumps({"jsonrpc": "2.0", "id": None, "method": "tools/call", "params": "not-a-dict"}) + "\n",
+                capture_output=True, text=True, timeout=30
+            )
+            self.assertEqual(p2.returncode, 0, f"{tmpl} crashed: {p2.stderr}")
+            res2 = json.loads(p2.stdout.strip())
+            self.assertIn("error", res2, f"{tmpl} did not return error for invalid params with null id")
+            self.assertEqual(res2["error"]["code"], -32602)
+            self.assertIsNone(res2.get("id"))
+
 if __name__ == "__main__":
     unittest.main()
