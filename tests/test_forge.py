@@ -186,6 +186,21 @@ class ForgeTest(unittest.TestCase):
         self.assertEqual(ok.returncode, 0, ok.stderr)
         dup = self.forge("add", "prompt", "ozet", "--dir", proj)
         self.assertNotEqual(dup.returncode, 0)
+        default_dup = self.forge("add", "prompt", "greet", "--dir", proj)
+        self.assertNotEqual(default_dup.returncode, 0)
+
+        # TS template parity lock (G38)
+        self.forge("create", "pdem-ts", "--template", "ts",
+                   "--dir", str(self.tmp))
+        proj_ts = str(self.tmp / "pdem-ts")
+        bad_ts = self.forge("add", "prompt", "Ozet!", "--dir", proj_ts)
+        self.assertNotEqual(bad_ts.returncode, 0)
+        dup_ts_default = self.forge("add", "prompt", "greet", "--dir", proj_ts)
+        self.assertNotEqual(dup_ts_default.returncode, 0)
+        ok_ts = self.forge("add", "prompt", "ozet", "--dir", proj_ts)
+        self.assertEqual(ok_ts.returncode, 0, ok_ts.stderr)
+        dup_ts = self.forge("add", "prompt", "ozet", "--dir", proj_ts)
+        self.assertNotEqual(dup_ts.returncode, 0)
 
     def test_add_resource_rejects_bad_names_and_duplicates(self):
         self.forge("create", "rdem", "--template", "python",
