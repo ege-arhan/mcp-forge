@@ -330,10 +330,25 @@ class ForgeTest(unittest.TestCase):
         proj = str(self.tmp / "demo")
         bad = self.forge("add", "tool", "Ozet!", "--dir", proj)
         self.assertNotEqual(bad.returncode, 0)
+        default_dup = self.forge("add", "tool", "hello_world", "--dir", proj)
+        self.assertNotEqual(default_dup.returncode, 0)
         ok = self.forge("add", "tool", "ozet", "--dir", proj)
         self.assertEqual(ok.returncode, 0, ok.stderr)
         dup = self.forge("add", "tool", "ozet", "--dir", proj)
         self.assertNotEqual(dup.returncode, 0)
+
+        # TS template parity lock (G39)
+        self.forge("create", "demo-ts", "--template", "ts",
+                   "--dir", str(self.tmp))
+        proj_ts = str(self.tmp / "demo-ts")
+        bad_ts = self.forge("add", "tool", "Ozet!", "--dir", proj_ts)
+        self.assertNotEqual(bad_ts.returncode, 0)
+        default_dup_ts = self.forge("add", "tool", "hello_world", "--dir", proj_ts)
+        self.assertNotEqual(default_dup_ts.returncode, 0)
+        ok_ts = self.forge("add", "tool", "ozet", "--dir", proj_ts)
+        self.assertEqual(ok_ts.returncode, 0, ok_ts.stderr)
+        dup_ts = self.forge("add", "tool", "ozet", "--dir", proj_ts)
+        self.assertNotEqual(dup_ts.returncode, 0)
 
     def test_verify_passes_on_fresh_template(self):
         proj = self.tmp / "vdemo"
