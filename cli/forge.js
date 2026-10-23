@@ -251,6 +251,11 @@ function cmdCreate(name, rest) {
     console.error("hata: proje adi gerekli (ornek: forge create demo)");
     process.exit(1);
   }
+  // G40: ad tek klasor adi olmali - .. / \ veya mutlak yol ile --dir disina yazma yok
+  if (/[\\/]/.test(cleanName) || cleanName === "." || cleanName === "..") {
+    console.error("hata: proje adi yol iceremez (sadece klasor adi, ornek: demo)");
+    process.exit(1);
+  }
   name = cleanName;
   let template = "python", dir = ".";
   for (let i = 0; i < rest.length; i++) {

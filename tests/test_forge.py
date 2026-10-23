@@ -726,6 +726,17 @@ class ForgeTest(unittest.TestCase):
             if clean:
                 self.assertFalse((self.tmp / clean).exists())
 
+    def test_create_rejects_path_in_name(self):
+        # G40: proje adi tek klasor adi olmali; '../x', 'a/b', '/abs' gibi
+        # degerler --dir siniri disina yazmamali (path traversal guard).
+        for bad in ["../escape", "sub/demo", "/tmp/abs_demo", "..", "a\\b"]:
+            r = self.forge("create", bad, "--dir", str(self.tmp))
+            self.assertNotEqual(r.returncode, 0, bad)
+            self.assertIn("hata: proje adi yol iceremez", r.stderr)
+        # --dir disinda hicbir sey olusmamali (kardes klasor dahil)
+        self.assertFalse((self.tmp.parent / "escape").exists())
+        self.assertFalse((self.tmp / "sub").exists())
+
     def test_null_id_request_parity(self):
         # JSON-RPC 2.0: 'id' alani null olsa bile istek nesnesidir (notification degildir).
         # Bilinmeyen method veya gecersiz params durumunda hem Python hem TS sunucu
