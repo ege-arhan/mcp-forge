@@ -10,6 +10,18 @@ const { spawnSync } = require("child_process");
 
 const TEMPLATES = ["python", "ts"];
 const TOOL_RE = /^[a-z][a-z0-9_]*$/;
+// G40: TS handler fonksiyon adi tool adindan turetilir; ayrilmis kelime
+// olursa `function new(` gibi gecersiz TS uretilir (node --check yakalamaz,
+// calistirinca ERR_INVALID_TYPESCRIPT_SYNTAX).
+const TS_RESERVED = new Set([
+  "await", "break", "case", "catch", "class", "const", "continue",
+  "debugger", "default", "delete", "do", "else", "enum", "eval",
+  "export", "extends", "false", "finally", "for", "function", "if",
+  "implements", "import", "in", "instanceof", "interface", "let", "new",
+  "null", "package", "private", "protected", "public", "return",
+  "static", "super", "switch", "this", "throw", "true", "try", "typeof",
+  "var", "void", "while", "with", "yield",
+]);
 
 function usage() {
   console.log(`kullanim:
@@ -88,6 +100,10 @@ function addPythonTool(serverFile, name) {
 function addTsTool(serverFile, name) {
   let src = fs.readFileSync(serverFile, "utf8");
   const fn = toCamel(name);
+  if (TS_RESERVED.has(fn)) {
+    console.error(`hata: '${name}' TS'te ayrilmis kelime; baska ad sec (ornek: ${name}_tool)`);
+    process.exit(1);
+  }
   if (src.includes(`function ${fn}(`) || src.includes(`handler: ${fn},`)) {
     console.error(`hata: '${name}' zaten kayitli`);
     process.exit(1);

@@ -771,5 +771,26 @@ class ForgeTest(unittest.TestCase):
             self.assertEqual(res2["error"]["code"], -32602)
             self.assertIsNone(res2.get("id"))
 
+    def test_ts_reserved_word_tool_name_rejected(self):
+        # G40: TS'te tool adi fonksiyon adina camelCase cevrilir; ayrilmis
+        # kelime olursa `function new(` uretilir. node --check bunu gecirir
+        # ama runtime ERR_INVALID_TYPESCRIPT_SYNTAX ile patlar.
+        self.forge("create", "resv", "--template", "ts", "--dir", str(self.tmp))
+        proj = self.tmp / "resv"
+        before = (proj / "server.ts").read_text()
+        for bad in ["new", "class", "delete", "return"]:
+            r = self.forge("add", "tool", bad, "--dir", str(proj))
+            self.assertNotEqual(r.returncode, 0, bad)
+            self.assertIn("ayrilmis kelime", r.stderr)
+        self.assertEqual(before, (proj / "server.ts").read_text())
+        # sunucu hala saglam
+        ck = subprocess.run(["node", "--check", str(proj / "server.ts")],
+                            capture_output=True, text=True, timeout=30)
+        self.assertEqual(ck.returncode, 0, ck.stderr)
+        # ayni ad python'da serbest (fonksiyon adi _new)
+        self.forge("create", "resv_py", "--template", "python", "--dir", str(self.tmp))
+        ok = self.forge("add", "tool", "new", "--dir", str(self.tmp / "resv_py"))
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+
 if __name__ == "__main__":
     unittest.main()
